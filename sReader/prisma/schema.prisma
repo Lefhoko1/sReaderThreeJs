@@ -19,7 +19,7 @@ model User {
   phone       String?
   displayName String   @map("display_name")
   avatarUrl   String?  @map("avatar_url")
-  roles       String[] @default(["LEARNER"])
+  roles       String[] @default(["STUDENT"]) // 'STUDENT', 'GUARDIAN', 'TUTOR', 'ACADEMY_ADMIN', 'SYS_ADMIN'
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
@@ -35,6 +35,11 @@ model User {
   stats          UserStats?
   achievements   UserAchievement[]
   ownedAssets    ContentAsset[]
+  
+  // Role-specific relations
+  student     Student?
+  guardian    Guardian?
+  tutor       Tutor?
 
   @@map("users")
 }
@@ -75,6 +80,81 @@ model Device {
 }
 
 // ============================================
+// ROLE-SPECIFIC USER DATA
+// ============================================
+
+model Student {
+  id            String    @id @map("id") @db.Uuid
+  gradeLevel    String?   @map("grade_level")
+  schoolName    String?   @map("school_name")
+  dateOfBirth   DateTime? @map("date_of_birth") @db.Date
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  user               User                 @relation(fields: [id], references: [id], onDelete: Cascade)
+  guardianRelations  GuardianStudent[]
+
+  @@map("students")
+}
+
+model Guardian {
+  id                String    @id @map("id") @db.Uuid
+  relationshipToStudent String? @map("relationship_to_student") // 'PARENT', 'GRANDPARENT', 'AUNT_UNCLE', 'SIBLING', 'OTHER'
+  occupation        String?
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  user             User                @relation(fields: [id], references: [id], onDelete: Cascade)
+  studentRelations GuardianStudent[]
+
+  @@map("guardians")
+}
+
+model GuardianStudent {
+  guardianId String   @map("guardian_id") @db.Uuid
+  studentId  String   @map("student_id") @db.Uuid
+  relationship String
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  guardian Guardian @relation(fields: [guardianId], references: [id], onDelete: Cascade)
+  student  Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@id([guardianId, studentId])
+  @@map("guardian_students")
+}
+
+model Tutor {
+  id                String    @id @map("id") @db.Uuid
+  bio               String?
+  specializations   String[]  @default([])
+  educationLevel    String?   @map("education_level") // 'HIGH_SCHOOL', 'BACHELOR', 'MASTER', 'PHD'
+  yearsOfExperience Int?      @map("years_of_experience")
+  hourlyRate        Decimal?  @map("hourly_rate") @db.Decimal(8, 2)
+  isVerified        Boolean   @default(false) @map("is_verified")
+  verificationDate  DateTime? @map("verification_date")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  user       User              @relation(fields: [id], references: [id], onDelete: Cascade)
+  academies  TutorAcademy[]
+
+  @@map("tutors")
+}
+
+model TutorAcademy {
+  tutorId    String   @map("tutor_id") @db.Uuid
+  academyId  String   @map("academy_id") @db.Uuid
+  role       String   @default("INSTRUCTOR") // 'ADMIN', 'INSTRUCTOR', 'ASSISTANT'
+  joinedAt   DateTime @default(now()) @map("joined_at")
+
+  tutor      Tutor        @relation(fields: [tutorId], references: [id], onDelete: Cascade)
+  academy    Organization @relation(fields: [academyId], references: [id], onDelete: Cascade)
+
+  @@id([tutorId, academyId])
+  @@map("tutor_academies")
+}
+
+// ============================================
 // ORGANIZATIONS & CLASSES
 // ============================================
 
@@ -85,7 +165,8 @@ model Organization {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  classes Class[]
+  classes      Class[]
+  tutorAcademies TutorAcademy[]
 
   @@map("organizations")
 }

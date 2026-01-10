@@ -13,6 +13,7 @@ import { ProfileScreen } from '@/src/presentation/screens/ProfileScreen';
 import { EditProfileScreen } from '@/src/presentation/screens/EditProfileScreen';
 import { PasswordResetScreen } from '@/src/presentation/screens/PasswordResetScreen';
 import { LocationScreen } from '@/src/presentation/screens/LocationScreen';
+import { FriendsScreen } from '@/src/presentation/screens/FriendsScreen';
 
 type ScreenName =
   | 'dashboard'
@@ -76,6 +77,7 @@ export default observer(function HomeTab() {
             await authVM.logout();
             handleNavigate('dashboard');
           }}
+          onBack={handleBack}
         />
       );
     case 'editProfile':
@@ -83,6 +85,7 @@ export default observer(function HomeTab() {
         <EditProfileScreen
           onCancel={() => handleNavigate('profile')}
           onSuccess={() => handleNavigate('profile')}
+          onHome={() => handleNavigate('dashboard')}
         />
       );
     case 'resetPassword':
@@ -106,20 +109,7 @@ export default observer(function HomeTab() {
         />
       );
     case 'friends':
-      return (
-        <ImageBackground
-          source={require('@/assets/images/background.jpg')}
-          style={styles.backgroundImage}
-          resizeMode="cover"
-        >
-          <View style={styles.emptyContainer}>
-            <Text variant="headlineSmall" style={{ color: '#fff' }}>Friends</Text>
-            <Text variant="bodyMedium" style={{ color: '#fff' }}>
-              Coming soon...
-            </Text>
-          </View>
-        </ImageBackground>
-      );
+      return <FriendsScreen onBack={handleBack} />;
     case 'dashboard':
     default:
       return <GameDashboard onNavigate={handleNavigate} />;

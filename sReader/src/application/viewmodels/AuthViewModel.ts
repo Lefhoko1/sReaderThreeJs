@@ -6,7 +6,8 @@
 
 import { makeAutoObservable, runInAction } from 'mobx';
 import { Result, ok, err } from '../../shared/result';
-import { User, Profile, Location } from '../../domain/entities/user';
+import { User, Profile, Location, Student, Guardian, Tutor } from '../../domain/entities/user';
+import { Role } from '../../shared/types';
 import { IUserRepository } from '../../data/repositories/IUserRepository';
 import supabase from '../../data/supabase/supabaseClient';
 
@@ -33,14 +34,27 @@ export class AuthViewModel {
     email: string;
     password: string;
     confirmPassword: string;
+    role: Role; // 'STUDENT', 'GUARDIAN', or 'TUTOR'
+    // Optional role-specific data
+    gradeLevel?: string; // For students
+    schoolName?: string; // For students
+    specializations?: string[]; // For tutors
+    yearsOfExperience?: number; // For tutors
   }): Promise<Result<User>> {
     this.loading = true;
     this.error = null;
     this.successMessage = null;
 
     // Validation
-    if (!data.displayName || !data.email || !data.password) {
+    if (!data.displayName || !data.email || !data.password || !data.role) {
       this.error = 'All fields are required';
+      this.loading = false;
+      return err(this.error);
+    }
+
+    const validRoles = [Role.STUDENT, Role.GUARDIAN, Role.TUTOR];
+    if (!validRoles.includes(data.role)) {
+      this.error = 'Invalid user role selected';
       this.loading = false;
       return err(this.error);
     }
@@ -97,7 +111,7 @@ export class AuthViewModel {
             phone: null,
             display_name: data.displayName,
             avatar_url: null,
-            roles: ['STUDENT'],
+            roles: [data.role],
             created_at: now,
             updated_at: now,
           },
@@ -118,10 +132,78 @@ export class AuthViewModel {
         return err(this.error);
       }
 
+      // 3. Create role-specific record based on user role
+      try {
+        if (data.role === Role.STUDENT) {
+          const { error: studentError } = await supabase
+            .from('students')
+            .insert([
+              {
+                id: authData.user.id,
+                grade_level: data.gradeLevel || null,
+                school_name: data.schoolName || null,
+                date_of_birth: null,
+                created_at: now,
+                updated_at: now,
+              },
+            ]);
+          if (studentError) {
+            console.error('Failed to create student record:', studentError);
+            this.error = 'Failed to create student profile';
+            this.loading = false;
+            return err(this.error);
+          }
+        } else if (data.role === Role.GUARDIAN) {
+          const { error: guardianError } = await supabase
+            .from('guardians')
+            .insert([
+              {
+                id: authData.user.id,
+                relationship_to_student: null,
+                occupation: null,
+                created_at: now,
+                updated_at: now,
+              },
+            ]);
+          if (guardianError) {
+            console.error('Failed to create guardian record:', guardianError);
+            this.error = 'Failed to create guardian profile';
+            this.loading = false;
+            return err(this.error);
+          }
+        } else if (data.role === Role.TUTOR) {
+          const { error: tutorError } = await supabase
+            .from('tutors')
+            .insert([
+              {
+                id: authData.user.id,
+                bio: null,
+                specializations: data.specializations || [],
+                education_level: null,
+                years_of_experience: data.yearsOfExperience || null,
+                hourly_rate: null,
+                is_verified: false,
+                verification_date: null,
+                created_at: now,
+                updated_at: now,
+              },
+            ]);
+          if (tutorError) {
+            console.error('Failed to create tutor record:', tutorError);
+            this.error = 'Failed to create tutor profile';
+            this.loading = false;
+            return err(this.error);
+          }
+        }
+      } catch (roleError: any) {
+        console.error('Error creating role-specific record:', roleError);
+        // Continue anyway - the user is created even if role-specific data fails
+      }
+
       // Convert database row to User object
       const newUser: User = {
         id: userData.id,
-        roles: userData.roles || ['STUDENT'],
+        roles: userData.roles || [data.role],
         email: userData.email,
         phone: userData.phone,
         displayName: userData.display_name,
@@ -135,7 +217,7 @@ export class AuthViewModel {
       runInAction(() => {
         if (result.ok) {
           this.currentUser = result.value;
-          this.successMessage = `Welcome, ${data.displayName}! Account created successfully.`;
+          this.successMessage = `Welcome, ${data.displayName}! Account created successfully as a ${data.role}.`;
         } else {
           this.error = result.error;
         }
@@ -509,6 +591,80 @@ export class AuthViewModel {
       runInAction(() => {
         this.loading = false;
       });
+    }
+  }
+
+  async updateStudentProfile(data: { id: string; gradeLevel?: string; schoolName?: string }): Promise<Result<any>> {
+    try {
+      const { data: result, error } = await supabase
+        .from('students')
+        .update({
+          grade_level: data.gradeLevel,
+          school_name: data.schoolName,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', data.id);
+
+      if (error) {
+        return err(error.message);
+      }
+
+      return ok(result);
+    } catch (error: any) {
+      console.error('Error updating student profile:', error);
+      return err(error.message || 'Failed to update student profile');
+    }
+  }
+
+  async updateGuardianProfile(data: { id: string; relationshipToStudent?: string; occupation?: string }): Promise<Result<any>> {
+    try {
+      const { data: result, error } = await supabase
+        .from('guardians')
+        .update({
+          relationship_to_student: data.relationshipToStudent,
+          occupation: data.occupation,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', data.id);
+
+      if (error) {
+        return err(error.message);
+      }
+
+      return ok(result);
+    } catch (error: any) {
+      console.error('Error updating guardian profile:', error);
+      return err(error.message || 'Failed to update guardian profile');
+    }
+  }
+
+  async updateTutorProfile(data: {
+    id: string;
+    yearsOfExperience?: number;
+    specializations?: string[];
+    educationLevel?: string;
+    hourlyRate?: number;
+  }): Promise<Result<any>> {
+    try {
+      const { data: result, error } = await supabase
+        .from('tutors')
+        .update({
+          years_of_experience: data.yearsOfExperience,
+          specializations: data.specializations,
+          education_level: data.educationLevel,
+          hourly_rate: data.hourlyRate,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', data.id);
+
+      if (error) {
+        return err(error.message);
+      }
+
+      return ok(result);
+    } catch (error: any) {
+      console.error('Error updating tutor profile:', error);
+      return err(error.message || 'Failed to update tutor profile');
     }
   }
 

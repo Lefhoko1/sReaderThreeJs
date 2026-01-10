@@ -45,6 +45,7 @@ export const AuthStack = observer(() => {
       {authFlow === 'signup' && (
         <SignupScreen
           onSuccess={handleSignupSuccess}
+          onLogin={() => setAuthFlow('login')}
         />
       )}
       {authFlow === 'forgotPassword' && (

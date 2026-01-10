@@ -61,6 +61,22 @@ export class SQLiteUserRepository implements IUserRepository {
     }
   }
 
+  async getUserById(id: string): Promise<Result<User>> {
+    return this.getUser(id);
+  }
+
+  async getAllStudents(): Promise<Result<User[]>> {
+    try {
+      const rows = await sqliteDb.all<any>(
+        `SELECT * FROM users WHERE roles LIKE '%student%'`
+      );
+
+      return ok(rows.map(r => ({ ...r, roles: JSON.parse(r.roles) })) as User[]);
+    } catch (e) {
+      return err(String(e));
+    }
+  }
+
   async listUsers(page = 1, pageSize = 10): Promise<Result<Page<User>>> {
     try {
       const offset = (page - 1) * pageSize;

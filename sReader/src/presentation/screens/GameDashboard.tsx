@@ -4,6 +4,7 @@ import { Card, Text, Button, useTheme, Avatar, ProgressBar, Chip } from 'react-n
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { observer } from 'mobx-react-lite';
 import { useAppContext } from '../context/AppContext';
+import { FriendsWidget } from '../components/FriendsWidget';
 
 export const GameDashboard = observer(({ onNavigate }: { onNavigate: (screen: string) => void }) => {
   const theme = useTheme();
@@ -182,6 +183,15 @@ export const GameDashboard = observer(({ onNavigate }: { onNavigate: (screen: st
           </View>
         </Card.Content>
       </Card>
+
+      {/* Friends Widget - Shows friend requests and recent friends */}
+      {user && (
+        <FriendsWidget
+          userId={user.id}
+          userRepo={authVM.userRepo}
+          onViewFriends={() => onNavigate('friends')}
+        />
+      )}
 
       {/* Next Assignment Card */}
       {nextAssignment && (

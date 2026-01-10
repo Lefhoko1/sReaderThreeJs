@@ -39,6 +39,15 @@ export class InMemoryUserRepository implements IUserRepository {
     return ok(user);
   }
 
+  async getUserById(id: string): Promise<Result<User>> {
+    return this.getUser(id);
+  }
+
+  async getAllStudents(): Promise<Result<User[]>> {
+    const students = Array.from(this.users.values()).filter(u => u.roles?.includes('student'));
+    return ok(students);
+  }
+
   async listUsers(page = 1, pageSize = 10): Promise<Result<Page<User>>> {
     const users = Array.from(this.users.values());
     const start = (page - 1) * pageSize;

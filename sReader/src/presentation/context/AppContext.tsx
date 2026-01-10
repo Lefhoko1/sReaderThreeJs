@@ -7,13 +7,14 @@
 
 import React, { createContext, useContext, ReactNode, useState, useEffect } from 'react';
 import { Platform } from 'react-native';
-import { IUserRepository, IAssignmentRepository, IScheduleRepository } from '../../data/repositories';
+import { IUserRepository, IAssignmentRepository, IScheduleRepository, IFriendshipRepository } from '../../data/repositories';
 import { SQLiteUserRepository } from '../../data/sqlite/SQLiteUserRepository';
 import { SQLiteAssignmentRepository } from '../../data/sqlite/SQLiteAssignmentRepository';
 import { SQLiteScheduleRepository } from '../../data/sqlite/SQLiteScheduleRepository';
 import { SupabaseUserRepository } from '../../data/supabase/SupabaseUserRepository';
 import { SupabaseAssignmentRepository } from '../../data/supabase/SupabaseAssignmentRepository';
 import { SupabaseScheduleRepository } from '../../data/supabase/SupabaseScheduleRepository';
+import { SupabaseFriendshipRepository } from '../../data/supabase/SupabaseFriendshipRepository';
 import { InMemoryAssignmentRepository } from '../../data/memory/InMemoryAssignmentRepository';
 import { InMemoryScheduleRepository } from '../../data/memory/InMemoryScheduleRepository';
 import { AuthViewModel, AssignmentViewModel, ScheduleViewModel } from '../../application/viewmodels';
@@ -25,6 +26,7 @@ interface AppContextType {
   userRepo: IUserRepository;
   assignmentRepo: IAssignmentRepository;
   scheduleRepo: IScheduleRepository;
+  friendshipRepo: IFriendshipRepository;
 
   // ViewModels
   authVM: AuthViewModel;
@@ -49,6 +51,7 @@ export function AppContextProvider(props: AppContextProviderProps) {
   const userRepo = Platform.OS === 'web' ? new SupabaseUserRepository() : new SQLiteUserRepository();
   const assignmentRepo = Platform.OS === 'web' ? new SupabaseAssignmentRepository() : new SQLiteAssignmentRepository();
   const scheduleRepo = Platform.OS === 'web' ? new SupabaseScheduleRepository() : new SQLiteScheduleRepository();
+  const friendshipRepo = new SupabaseFriendshipRepository(); // Currently Supabase only
 
   // Initialize ViewModels
   const authVM = new AuthViewModel(userRepo);
@@ -76,6 +79,7 @@ export function AppContextProvider(props: AppContextProviderProps) {
     userRepo,
     assignmentRepo,
     scheduleRepo,
+    friendshipRepo,
     authVM,
     assignmentVM,
     scheduleVM,

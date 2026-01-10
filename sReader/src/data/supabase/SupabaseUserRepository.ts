@@ -27,6 +27,10 @@ export class SupabaseUserRepository implements IUserRepository {
     }
   }
 
+  async getUserById(id: string): Promise<Result<User>> {
+    return this.getUser(id);
+  }
+
   async getUserByEmail(email: string): Promise<Result<User>> {
     try {
       const { data, error } = await supabase
@@ -353,6 +357,22 @@ export class SupabaseUserRepository implements IUserRepository {
     } catch (error: any) {
       console.error('Error revoking device:', error);
       return err(error.message || 'Failed to revoke device');
+    }
+  }
+
+  async getAllStudents(): Promise<Result<User[]>> {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .contains('roles', ['STUDENT']);
+
+      if (error) throw error;
+
+      return ok((data || []).map(d => this.mapToUser(d)));
+    } catch (error: any) {
+      console.error('Error getting all students:', error);
+      return err(error.message || 'Failed to get students');
     }
   }
 

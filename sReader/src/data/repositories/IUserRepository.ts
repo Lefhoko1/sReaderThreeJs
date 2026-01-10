@@ -5,7 +5,9 @@ import { User, Profile, Device, Location } from '../../domain/entities/user';
 export interface IUserRepository {
   createUser(user: Omit<User, 'id'|'createdAt'|'updatedAt'>): Promise<Result<User>>;
   getUser(id: string): Promise<Result<User>>;
+  getUserById(id: string): Promise<Result<User>>;
   listUsers(page?: number, pageSize?: number): Promise<Result<Page<User>>>;
+  getAllStudents(): Promise<Result<User[]>>;
   updateUser(user: User): Promise<Result<User>>;
   deleteUser(id: string): Promise<Result<boolean>>;
 

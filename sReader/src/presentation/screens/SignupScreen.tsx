@@ -1,18 +1,37 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
-import { Text, TextInput, Button, Checkbox, Snackbar, useTheme, ActivityIndicator } from 'react-native-paper';
+import { Text, TextInput, Button, Checkbox, Snackbar, useTheme, ActivityIndicator, SegmentedButtons } from 'react-native-paper';
 import { observer } from 'mobx-react-lite';
 import { useAppContext } from '../context/AppContext';
+import { Role } from '../../shared/types';
 
 type SignupFormData = {
   displayName: string;
   email: string;
   password: string;
   confirmPassword: string;
+  role: Role;
   agreeToTerms: boolean;
+  gradeLevel?: string; // For students
+  schoolName?: string; // For students
+  yearsOfExperience?: string; // For tutors
 };
 
-export const SignupScreen = observer(({ onSuccess }: { onSuccess?: () => void }) => {
+const ROLE_OPTIONS = [
+  { label: 'Student', value: Role.STUDENT },
+  { label: 'Guardian', value: Role.GUARDIAN },
+  { label: 'Tutor', value: Role.TUTOR },
+];
+
+const ROLE_DESCRIPTIONS: Record<Role, string> = {
+  [Role.STUDENT]: 'I want to learn and complete assignments',
+  [Role.GUARDIAN]: 'I want to manage students\' learning',
+  [Role.TUTOR]: 'I want to teach and create academies',
+  [Role.ACADEMY_ADMIN]: '',
+  [Role.SYS_ADMIN]: '',
+};
+
+export const SignupScreen = observer(({ onSuccess, onLogin }: { onSuccess?: () => void; onLogin?: () => void }) => {
   const theme = useTheme();
   const { authVM } = useAppContext();
   const [form, setForm] = useState<SignupFormData>({
@@ -20,6 +39,7 @@ export const SignupScreen = observer(({ onSuccess }: { onSuccess?: () => void })
     email: '',
     password: '',
     confirmPassword: '',
+    role: Role.STUDENT,
     agreeToTerms: false,
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -68,6 +88,10 @@ export const SignupScreen = observer(({ onSuccess }: { onSuccess?: () => void })
       email: form.email,
       password: form.password,
       confirmPassword: form.confirmPassword,
+      role: form.role,
+      gradeLevel: form.gradeLevel,
+      schoolName: form.schoolName,
+      yearsOfExperience: form.yearsOfExperience ? parseInt(form.yearsOfExperience) : undefined,
     });
 
     if (result.ok && onSuccess) {
@@ -135,6 +159,64 @@ export const SignupScreen = observer(({ onSuccess }: { onSuccess?: () => void })
               </Text>
             )}
           </View>
+
+          {/* Role Selection */}
+          <View style={styles.fieldContainer}>
+            <Text variant="labelLarge">What's your role?</Text>
+            <SegmentedButtons
+              value={form.role}
+              onValueChange={(value) => handleInputChange('role', value as Role)}
+              buttons={ROLE_OPTIONS}
+              style={styles.roleButtons}
+            />
+            <Text variant="bodySmall" style={[styles.roleDescription, { color: theme.colors.onSurfaceVariant }]}>
+              {ROLE_DESCRIPTIONS[form.role]}
+            </Text>
+          </View>
+
+          {/* Role-specific fields for Students */}
+          {form.role === Role.STUDENT && (
+            <>
+              <View style={styles.fieldContainer}>
+                <Text variant="labelLarge">Grade Level (Optional)</Text>
+                <TextInput
+                  mode="outlined"
+                  label="e.g., 10th Grade"
+                  value={form.gradeLevel || ''}
+                  onChangeText={value => handleInputChange('gradeLevel', value)}
+                  editable={!authVM.loading}
+                  style={styles.input}
+                />
+              </View>
+              <View style={styles.fieldContainer}>
+                <Text variant="labelLarge">School Name (Optional)</Text>
+                <TextInput
+                  mode="outlined"
+                  label="Your school name"
+                  value={form.schoolName || ''}
+                  onChangeText={value => handleInputChange('schoolName', value)}
+                  editable={!authVM.loading}
+                  style={styles.input}
+                />
+              </View>
+            </>
+          )}
+
+          {/* Role-specific fields for Tutors */}
+          {form.role === Role.TUTOR && (
+            <View style={styles.fieldContainer}>
+              <Text variant="labelLarge">Years of Experience (Optional)</Text>
+              <TextInput
+                mode="outlined"
+                label="e.g., 5"
+                value={form.yearsOfExperience || ''}
+                onChangeText={value => handleInputChange('yearsOfExperience', value)}
+                keyboardType="number-pad"
+                editable={!authVM.loading}
+                style={styles.input}
+              />
+            </View>
+          )}
 
           {/* Password */}
           <View style={styles.fieldContainer}>
@@ -233,7 +315,7 @@ export const SignupScreen = observer(({ onSuccess }: { onSuccess?: () => void })
         {/* Login Link */}
         <View style={styles.loginLink}>
           <Text variant="bodyMedium">Already have an account? </Text>
-          <TouchableOpacity disabled={authVM.loading}>
+          <TouchableOpacity disabled={authVM.loading} onPress={onLogin}>
             <Text
               style={{
                 color: theme.colors.primary,
@@ -279,6 +361,13 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 12,
     marginTop: 4,
+  },
+  roleButtons: {
+    marginTop: 12,
+  },
+  roleDescription: {
+    marginTop: 8,
+    fontStyle: 'italic',
   },
   termsContainer: {
     flexDirection: 'row',
