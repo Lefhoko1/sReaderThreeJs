@@ -27,6 +27,7 @@ export const EditProfileScreen = observer(({ onCancel, onSuccess }: {
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length === 0 && user) {
+      // Update user data (displayName, phone)
       const updatedUser: User = {
         ...user,
         displayName,
@@ -34,15 +35,19 @@ export const EditProfileScreen = observer(({ onCancel, onSuccess }: {
         updatedAt: new Date().toISOString(),
       };
 
-      const result = await authVM.updateProfile({
-        userId: user.id,
-        bio: '',
-        locationConsent: false,
-      });
+      const userResult = await authVM.updateUserProfile(updatedUser);
 
-      if (result.ok) {
-        authVM.currentUser = updatedUser;
-        onSuccess();
+      if (userResult.ok) {
+        // Also update the profile
+        const profileResult = await authVM.updateProfile({
+          userId: user.id,
+          bio: '',
+          locationConsent: false,
+        });
+
+        if (profileResult.ok) {
+          onSuccess();
+        }
       }
     }
   };

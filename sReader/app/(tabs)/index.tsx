@@ -11,6 +11,8 @@ import { LeaderboardScreen } from '@/src/presentation/screens/LeaderboardScreen'
 import { ResourcesScreen } from '@/src/presentation/screens/ResourcesScreen';
 import { ProfileScreen } from '@/src/presentation/screens/ProfileScreen';
 import { EditProfileScreen } from '@/src/presentation/screens/EditProfileScreen';
+import { PasswordResetScreen } from '@/src/presentation/screens/PasswordResetScreen';
+import { LocationScreen } from '@/src/presentation/screens/LocationScreen';
 
 type ScreenName =
   | 'dashboard'
@@ -20,6 +22,8 @@ type ScreenName =
   | 'resources'
   | 'profile'
   | 'editProfile'
+  | 'resetPassword'
+  | 'location'
   | 'friends';
 
 export default observer(function HomeTab() {
@@ -77,6 +81,26 @@ export default observer(function HomeTab() {
     case 'editProfile':
       return (
         <EditProfileScreen
+          onCancel={() => handleNavigate('profile')}
+          onSuccess={() => handleNavigate('profile')}
+        />
+      );
+    case 'resetPassword':
+      return (
+        <ImageBackground
+          source={require('@/assets/images/background.jpg')}
+          style={styles.backgroundImage}
+          resizeMode="cover"
+        >
+          <PasswordResetScreen
+            onSuccess={() => handleNavigate('dashboard')}
+            onBackToLogin={handleBack}
+          />
+        </ImageBackground>
+      );
+    case 'location':
+      return (
+        <LocationScreen
           onCancel={() => handleNavigate('profile')}
           onSuccess={() => handleNavigate('profile')}
         />

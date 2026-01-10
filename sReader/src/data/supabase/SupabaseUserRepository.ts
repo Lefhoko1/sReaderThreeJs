@@ -154,13 +154,19 @@ export class SupabaseUserRepository implements IUserRepository {
         .from('profiles')
         .select('*')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
 
-      if (error) {
+      if (error && error.code !== 'PGRST116') {
         return err(error.message || 'Profile not found');
       }
+
+      // If no profile exists yet, return default profile
       if (!data) {
-        return err('Profile not found');
+        return ok({
+          userId,
+          bio: undefined,
+          locationConsent: false,
+        });
       }
 
       return ok({
@@ -171,7 +177,12 @@ export class SupabaseUserRepository implements IUserRepository {
       });
     } catch (error: any) {
       console.error('Error getting profile:', error);
-      return err(error.message || 'Failed to get profile');
+      // Return default profile on error instead of failing
+      return ok({
+        userId,
+        bio: undefined,
+        locationConsent: false,
+      });
     }
   }
 

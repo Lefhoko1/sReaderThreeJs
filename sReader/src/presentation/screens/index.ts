@@ -4,3 +4,4 @@
 
 export { RegisterScreen } from './RegisterScreen';
 export { AssignmentListScreen } from './AssignmentListScreen';
+export { LocationScreen } from './LocationScreen';

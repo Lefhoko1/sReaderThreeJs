@@ -46,6 +46,21 @@ CREATE TABLE public.devices (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Password reset codes
+CREATE TABLE public.password_resets (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+  email TEXT NOT NULL,
+  code_hash TEXT NOT NULL,
+  expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+  used_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Index for password reset lookups
+CREATE INDEX idx_password_resets_email ON public.password_resets(email);
+CREATE INDEX idx_password_resets_code_hash ON public.password_resets(code_hash);
+
 -- ============================================
 -- ORGANIZATIONS & CLASSES
 -- ============================================
@@ -233,6 +248,9 @@ CREATE POLICY "Users can update own data" ON public.users
 CREATE POLICY "Users can view own profile" ON public.profiles
   FOR ALL USING (auth.uid() = user_id);
 
+CREATE POLICY "Users can view own location" ON public.locations
+  FOR ALL USING (auth.uid() = user_id);
+
 CREATE POLICY "Users can view own schedules" ON public.schedules
   FOR SELECT USING (auth.uid() = user_id);
 
@@ -256,6 +274,9 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON public.users
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_locations_updated_at BEFORE UPDATE ON public.locations
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_assignments_updated_at BEFORE UPDATE ON public.assignments

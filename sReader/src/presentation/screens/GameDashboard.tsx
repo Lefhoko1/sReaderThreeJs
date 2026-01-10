@@ -11,6 +11,9 @@ export const GameDashboard = observer(({ onNavigate }: { onNavigate: (screen: st
 
   useEffect(() => {
     dashboardVM.loadDashboard();
+    if (authVM.currentUser) {
+      authVM.getLocation();
+    }
   }, []);
 
   if (!dashboardVM.dashboardData) {
@@ -19,6 +22,7 @@ export const GameDashboard = observer(({ onNavigate }: { onNavigate: (screen: st
 
   const { dashboardData } = dashboardVM;
   const user = authVM.currentUser;
+  const currentLocation = authVM.currentLocation;
   const unreadCount = dashboardData.unreadNotificationCount;
   const nextAssignment = dashboardData.scheduledAssignments[0]?.assignment;
   const userScore = 2450; // Example gamification score
@@ -115,6 +119,67 @@ export const GameDashboard = observer(({ onNavigate }: { onNavigate: (screen: st
             </View>
             <ProgressBar progress={0.5} color={theme.colors.tertiary} />
           </View>
+
+          {/* Quick Account Actions */}
+          <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 12, gap: 8 }}>
+            <Button
+              mode="text"
+              icon="lock-reset"
+              compact
+              onPress={() => onNavigate('resetPassword')}
+            >
+              Reset Password
+            </Button>
+            <Button
+              mode="text"
+              icon="logout"
+              compact
+              onPress={async () => {
+                await authVM.logout();
+                onNavigate('dashboard');
+              }}
+            >
+              Logout
+            </Button>
+          </View>
+        </Card.Content>
+      </Card>
+
+      {/* Location Card */}
+      <Card style={[styles.locationCard, { backgroundColor: theme.colors.tertiaryContainer }]}>
+        <Card.Content style={styles.locationContent}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <View style={{ flex: 1 }}>
+              <Text variant="labelSmall" style={{ color: theme.colors.onTertiaryContainer, opacity: 0.7 }}>
+                📍 Your Location
+              </Text>
+              {currentLocation ? (
+                <>
+                  <Text variant="bodySmall" style={{ color: theme.colors.onTertiaryContainer, marginTop: 4 }}>
+                    {currentLocation.lat.toFixed(4)}, {currentLocation.lng.toFixed(4)}
+                  </Text>
+                  {currentLocation.address && (
+                    <Text variant="labelSmall" style={{ color: theme.colors.onTertiaryContainer, opacity: 0.8, marginTop: 2 }}>
+                      {currentLocation.address}
+                    </Text>
+                  )}
+                </>
+              ) : (
+                <Text variant="bodySmall" style={{ color: theme.colors.onTertiaryContainer, marginTop: 4 }}>
+                  No location saved yet
+                </Text>
+              )}
+            </View>
+            <Button
+              mode="contained-tonal"
+              compact
+              size="small"
+              icon={currentLocation ? 'pencil' : 'plus'}
+              onPress={() => onNavigate('location')}
+            >
+              {currentLocation ? 'Update' : 'Add'}
+            </Button>
+          </View>
         </Card.Content>
       </Card>
 
@@ -159,7 +224,7 @@ export const GameDashboard = observer(({ onNavigate }: { onNavigate: (screen: st
       <View style={styles.menuGrid}>
         {/* Assignments Button */}
         <MenuButton
-          icon="task-multiple"
+          icon="clipboard-list"
           label="Assignments"
           sublabel={`${dashboardData.scheduledAssignments.length} scheduled`}
           color={theme.colors.primary}
@@ -349,6 +414,13 @@ const styles = StyleSheet.create({
   featuredCard: {
     marginBottom: 16,
     borderRadius: 16,
+  },
+  locationCard: {
+    marginBottom: 16,
+    borderRadius: 16,
+  },
+  locationContent: {
+    paddingVertical: 12,
   },
   menuGrid: {
     flexDirection: 'row',

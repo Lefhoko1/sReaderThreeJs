@@ -6,19 +6,21 @@
 
 import { makeAutoObservable, runInAction } from 'mobx';
 import { Result, ok, err } from '../../shared/result';
-import { User, Profile } from '../../domain/entities/user';
+import { User, Profile, Location } from '../../domain/entities/user';
 import { IUserRepository } from '../../data/repositories/IUserRepository';
 import supabase from '../../data/supabase/supabaseClient';
 
 export class AuthViewModel {
   currentUser: User | null = null;
   currentProfile: Profile | null = null;
+  currentLocation: Location | null = null;
   loading = false;
   error: string | null = null;
   successMessage: string | null = null;
   
   // For password reset flow
   resetEmail: string = '';
+  resetCode: string = '';
   resetOtpSent = false;
   resetVerified = false;
 
@@ -178,11 +180,21 @@ export class AuthViewModel {
 
       if (signInError) {
         console.error('Supabase signIn error:', signInError);
-        // Check if user needs email confirmation
-        if (signInError.message && signInError.message.includes('not confirmed')) {
-          this.error = 'Please confirm your email before logging in';
+        const errorMsg = signInError.message || '';
+        
+        // Check for email verification requirement
+        if (
+          errorMsg.toLowerCase().includes('not confirmed') ||
+          errorMsg.toLowerCase().includes('email not confirmed') ||
+          errorMsg.toLowerCase().includes('verify your email') ||
+          errorMsg.includes('Email not confirmed') ||
+          signInError.code === 'email_not_confirmed'
+        ) {
+          this.error = '📧 Please verify your email address first. Check your inbox for a confirmation link.';
+        } else if (errorMsg.toLowerCase().includes('invalid') || errorMsg.toLowerCase().includes('credentials')) {
+          this.error = '❌ Invalid email or password. Please try again.';
         } else {
-          this.error = signInError.message || 'Invalid email or password';
+          this.error = errorMsg || 'Login failed. Please try again.';
         }
         this.loading = false;
         return err(this.error);
@@ -217,10 +229,11 @@ export class AuthViewModel {
       
       return result;
     } catch (error: any) {
+      const errorMsg = error.message || 'Login failed';
       runInAction(() => {
-        this.error = error.message || 'Login failed';
+        this.error = errorMsg;
       });
-      return err(this.error);
+      return err(errorMsg);
     } finally {
       runInAction(() => {
         this.loading = false;
@@ -229,80 +242,197 @@ export class AuthViewModel {
   }
 
   async requestPasswordReset(email: string): Promise<Result<boolean>> {
-    this.loading = true;
-    this.error = null;
-    this.successMessage = null;
+    runInAction(() => {
+      this.loading = true;
+      this.error = null;
+      this.successMessage = null;
+    });
 
     if (!email) {
-      this.error = 'Email is required';
-      this.loading = false;
-      return err(this.error);
+      const errorMsg = 'Email required';
+      runInAction(() => {
+        this.error = errorMsg;
+        this.loading = false;
+      });
+      return err(errorMsg);
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      this.error = 'Invalid email format';
-      this.loading = false;
-      return err(this.error);
+      const errorMsg = 'Invalid email format';
+      runInAction(() => {
+        this.error = errorMsg;
+        this.loading = false;
+      });
+      return err(errorMsg);
     }
 
-    // TODO: In production, call backend to send OTP
-    this.resetEmail = email;
-    this.resetOtpSent = true;
-    this.successMessage = `Password reset code sent to ${email}`;
-    
-    this.loading = false;
-    return ok(true);
+    try {
+      const supabaseUrl = (process.env as any).EXPO_PUBLIC_SUPABASE_URL as string;
+      const functionsBase = supabaseUrl.replace('.supabase.co', '.functions.supabase.co');
+      const resp = await fetch(`${functionsBase}/password-reset`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action: 'request', email }),
+      });
+      const json = await resp.json();
+      if (!resp.ok || json.error) {
+        const errorMsg = json.error || 'Failed to send reset code';
+        runInAction(() => {
+          this.error = errorMsg;
+          this.loading = false;
+        });
+        return err(errorMsg);
+      }
+
+      runInAction(() => {
+        this.resetEmail = email;
+        this.resetOtpSent = true;
+        this.successMessage = `📧 Verification code sent to ${email}. Check your inbox.`;
+        this.loading = false;
+      });
+      return ok(true);
+    } catch (error: any) {
+      console.error('Error requesting password reset:', error);
+      const errorMsg = error.message || 'Failed to request password reset';
+      runInAction(() => {
+        this.error = errorMsg;
+        this.loading = false;
+      });
+      return err(errorMsg);
+    }
   }
 
   async verifyResetOtp(otp: string): Promise<Result<boolean>> {
-    this.loading = true;
-    this.error = null;
+    runInAction(() => {
+      this.loading = true;
+      this.error = null;
+    });
 
     if (!otp || otp.length < 4) {
-      this.error = 'Invalid code';
-      this.loading = false;
-      return err(this.error);
+      const errorMsg = 'Invalid code';
+      runInAction(() => {
+        this.error = errorMsg;
+        this.loading = false;
+      });
+      return err(errorMsg);
     }
 
-    // TODO: In production, call backend to verify OTP
-    this.resetVerified = true;
-    this.successMessage = 'Code verified. Enter your new password.';
-    
-    this.loading = false;
-    return ok(true);
+    try {
+      const supabaseUrl = (process.env as any).EXPO_PUBLIC_SUPABASE_URL as string;
+      const functionsBase = supabaseUrl.replace('.supabase.co', '.functions.supabase.co');
+      const resp = await fetch(`${functionsBase}/password-reset`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action: 'verify', email: this.resetEmail, code: otp }),
+      });
+      const json = await resp.json();
+      if (!resp.ok || json.error) {
+        const errorMsg = json.error || 'Invalid verification code';
+        runInAction(() => {
+          this.error = errorMsg;
+          this.loading = false;
+        });
+        return err(errorMsg);
+      }
+
+      runInAction(() => {
+        this.resetCode = otp;
+        this.resetVerified = true;
+        this.successMessage = '✓ Code verified. Enter your new password.';
+        this.loading = false;
+      });
+      return ok(true);
+    } catch (error: any) {
+      console.error('Error verifying reset code:', error);
+      const errorMsg = error.message || 'Failed to verify code';
+      runInAction(() => {
+        this.error = errorMsg;
+        this.loading = false;
+      });
+      return err(errorMsg);
+    }
   }
 
   async resetPassword(newPassword: string, confirmPassword: string): Promise<Result<boolean>> {
-    this.loading = true;
-    this.error = null;
+    runInAction(() => {
+      this.loading = true;
+      this.error = null;
+    });
 
     if (!newPassword || !confirmPassword) {
-      this.error = 'Passwords required';
-      this.loading = false;
-      return err(this.error);
+      const errorMsg = 'Passwords required';
+      runInAction(() => {
+        this.error = errorMsg;
+        this.loading = false;
+      });
+      return err(errorMsg);
     }
 
     if (newPassword !== confirmPassword) {
-      this.error = 'Passwords do not match';
-      this.loading = false;
-      return err(this.error);
+      const errorMsg = 'Passwords do not match';
+      runInAction(() => {
+        this.error = errorMsg;
+        this.loading = false;
+      });
+      return err(errorMsg);
     }
 
     if (newPassword.length < 8) {
-      this.error = 'Password must be at least 8 characters';
-      this.loading = false;
-      return err(this.error);
+      const errorMsg = 'Password must be at least 8 characters';
+      runInAction(() => {
+        this.error = errorMsg;
+        this.loading = false;
+      });
+      return err(errorMsg);
     }
 
-    // TODO: In production, call backend to reset password
-    this.resetOtpSent = false;
-    this.resetVerified = false;
-    this.resetEmail = '';
-    this.successMessage = 'Password reset successfully! Please login with your new password.';
-    
-    this.loading = false;
-    return ok(true);
+    try {
+      const supabaseUrl = (process.env as any).EXPO_PUBLIC_SUPABASE_URL as string;
+      const functionsBase = supabaseUrl.replace('.supabase.co', '.functions.supabase.co');
+      const resp = await fetch(`${functionsBase}/password-reset`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'reset',
+          email: this.resetEmail,
+          code: this.resetCode,
+          newPassword,
+        }),
+      });
+      const json = await resp.json();
+      if (!resp.ok || json.error) {
+        const errorMsg = json.error || 'Failed to reset password';
+        runInAction(() => {
+          this.error = errorMsg;
+          this.loading = false;
+        });
+        return err(errorMsg);
+      }
+
+      runInAction(() => {
+        this.resetOtpSent = false;
+        this.resetVerified = false;
+        this.resetEmail = '';
+        this.successMessage = '✅ Password reset successfully! Please login with your new password.';
+        this.loading = false;
+      });
+      return ok(true);
+    } catch (error: any) {
+      console.error('Error resetting password:', error);
+      const errorMsg = error.message || 'Failed to reset password';
+      runInAction(() => {
+        this.error = errorMsg;
+        this.loading = false;
+      });
+      return err(errorMsg);
+    }
   }
 
   async logout(): Promise<void> {
@@ -319,15 +449,67 @@ export class AuthViewModel {
     });
   }
 
-  async updateProfile(profile: Profile): Promise<Result<Profile>> {
-    const result = await this.userRepo.updateProfile(profile);
-    if (result.ok) {
-      this.currentProfile = result.value;
-      this.successMessage = 'Profile updated successfully';
-    } else {
-      this.error = result.error;
+  async updateUserProfile(user: User): Promise<Result<User>> {
+    runInAction(() => {
+      this.loading = true;
+      this.error = null;
+      this.successMessage = null;
+    });
+
+    try {
+      // Update user data in database
+      const result = await this.userRepo.updateUser(user);
+      runInAction(() => {
+        if (result.ok) {
+          this.currentUser = result.value;
+          this.successMessage = 'Profile updated successfully';
+        } else {
+          this.error = result.error;
+        }
+      });
+      return result;
+    } catch (error: any) {
+      const errorMsg = error.message || 'Failed to update profile';
+      runInAction(() => {
+        this.error = errorMsg;
+      });
+      return err(errorMsg);
+    } finally {
+      runInAction(() => {
+        this.loading = false;
+      });
     }
-    return result;
+  }
+
+  async updateProfile(profile: Profile): Promise<Result<Profile>> {
+    runInAction(() => {
+      this.loading = true;
+      this.error = null;
+      this.successMessage = null;
+    });
+
+    try {
+      const result = await this.userRepo.updateProfile(profile);
+      runInAction(() => {
+        if (result.ok) {
+          this.currentProfile = result.value;
+          this.successMessage = 'Profile updated successfully';
+        } else {
+          this.error = result.error;
+        }
+      });
+      return result;
+    } catch (error: any) {
+      const errorMsg = error.message || 'Failed to update profile';
+      runInAction(() => {
+        this.error = errorMsg;
+      });
+      return err(errorMsg);
+    } finally {
+      runInAction(() => {
+        this.loading = false;
+      });
+    }
   }
 
   async deleteAccount(): Promise<Result<boolean>> {
@@ -339,6 +521,70 @@ export class AuthViewModel {
       await this.logout();
     }
     return result;
+  }
+
+  async getLocation(): Promise<Result<Location | null>> {
+    if (!this.currentUser) {
+      return err('No user logged in');
+    }
+
+    runInAction(() => {
+      this.loading = true;
+      this.error = null;
+    });
+
+    try {
+      const location = await this.userRepo.getLocation(this.currentUser!.id);
+      runInAction(() => {
+        this.currentLocation = location;
+      });
+      return ok(location);
+    } catch (error: any) {
+      const errorMsg = error.message || 'Failed to get location';
+      runInAction(() => {
+        this.error = errorMsg;
+      });
+      return err(errorMsg);
+    } finally {
+      runInAction(() => {
+        this.loading = false;
+      });
+    }
+  }
+
+  async saveLocation(location: Location): Promise<Result<void>> {
+    if (!this.currentUser) {
+      return err('No user logged in');
+    }
+
+    runInAction(() => {
+      this.loading = true;
+      this.error = null;
+      this.successMessage = null;
+    });
+
+    try {
+      const result = await this.userRepo.saveLocation(location);
+      runInAction(() => {
+        if (result.ok) {
+          this.currentLocation = location;
+          this.successMessage = 'Location saved successfully';
+        } else {
+          this.error = result.error;
+        }
+      });
+      return result;
+    } catch (error: any) {
+      const errorMsg = error.message || 'Failed to save location';
+      runInAction(() => {
+        this.error = errorMsg;
+      });
+      return err(errorMsg);
+    } finally {
+      runInAction(() => {
+        this.loading = false;
+      });
+    }
   }
 
   isLoggedIn(): boolean {

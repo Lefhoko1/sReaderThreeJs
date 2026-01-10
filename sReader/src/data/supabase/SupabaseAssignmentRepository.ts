@@ -5,6 +5,7 @@ import { ID } from '../../shared/types';
 import supabase from './supabaseClient';
 
 export class SupabaseAssignmentRepository implements IAssignmentRepository {
+  // Old working methods
   async getAssignmentById(id: ID): Promise<Assignment | null> {
     try {
       const { data, error } = await supabase
@@ -37,69 +38,6 @@ export class SupabaseAssignmentRepository implements IAssignmentRepository {
     } catch (error) {
       console.error('Error getting assignments by class:', error);
       return [];
-    }
-  }
-
-  async createAssignment(assignment: Assignment): Promise<Result<Assignment>> {
-    try {
-      const { data, error } = await supabase
-        .from('assignments')
-        .insert([
-          {
-            id: assignment.id,
-            class_id: assignment.classId,
-            title: assignment.title,
-            description: assignment.description,
-            content_blocks: assignment.contentBlocks,
-            due_at: assignment.dueAt,
-          },
-        ])
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      return ok(this.mapToAssignment(data));
-    } catch (error: any) {
-      console.error('Error creating assignment:', error);
-      return err(error.message || 'Failed to create assignment');
-    }
-  }
-
-  async updateAssignment(assignment: Assignment): Promise<Result<Assignment>> {
-    try {
-      const { data, error } = await supabase
-        .from('assignments')
-        .update({
-          title: assignment.title,
-          description: assignment.description,
-          content_blocks: assignment.contentBlocks,
-          due_at: assignment.dueAt,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', assignment.id)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      return ok(this.mapToAssignment(data));
-    } catch (error: any) {
-      console.error('Error updating assignment:', error);
-      return err(error.message || 'Failed to update assignment');
-    }
-  }
-
-  async deleteAssignment(id: ID): Promise<Result<boolean>> {
-    try {
-      const { error } = await supabase.from('assignments').delete().eq('id', id);
-
-      if (error) throw error;
-
-      return ok(true);
-    } catch (error: any) {
-      console.error('Error deleting assignment:', error);
-      return err(error.message || 'Failed to delete assignment');
     }
   }
 
@@ -156,6 +94,51 @@ export class SupabaseAssignmentRepository implements IAssignmentRepository {
       console.error('Error saving asset:', error);
       return err(error.message || 'Failed to save asset');
     }
+  }
+
+  // Interface methods - TODO: Implement
+  async getAssignment(id: string): Promise<Result<Assignment>> {
+    return err('Not implemented');
+  }
+
+  async listAssignments(): Promise<Result<any>> {
+    return err('Not implemented');
+  }
+
+  async searchAssignments(): Promise<Result<any>> {
+    return err('Not implemented');
+  }
+
+  async createAssignment(a: Omit<Assignment, 'id'>): Promise<Result<Assignment>> {
+    return err('Not implemented');
+  }
+
+  async updateAssignment(a: Assignment): Promise<Result<Assignment>> {
+    return err('Not implemented');
+  }
+
+  async deleteAssignment(id: string): Promise<Result<boolean>> {
+    return err('Not implemented');
+  }
+
+  async addTool(t: any): Promise<Result<AssignmentTool>> {
+    return err('Not implemented');
+  }
+
+  async listTools(assignmentId: string): Promise<Result<AssignmentTool[]>> {
+    return err('Not implemented');
+  }
+
+  async removeTool(id: string): Promise<Result<boolean>> {
+    return err('Not implemented');
+  }
+
+  async addAsset(asset: any): Promise<Result<ContentAsset>> {
+    return err('Not implemented');
+  }
+
+  async listAssets(assignmentId: string): Promise<Result<ContentAsset[]>> {
+    return err('Not implemented');
   }
 
   private mapToAssignment(data: any): Assignment {

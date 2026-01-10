@@ -1,90 +1,106 @@
 import { IScheduleRepository } from '../repositories/IScheduleRepository';
 import { Schedule } from '../../domain/entities/schedule';
 import { Result, ok, err } from '../../shared/result';
-import { ID } from '../../shared/types';
+import { ID, Page } from '../../shared/types';
 import supabase from './supabaseClient';
 
 export class SupabaseScheduleRepository implements IScheduleRepository {
-  async getScheduleById(id: ID): Promise<Schedule | null> {
+  async getSchedule(id: string): Promise<Result<Schedule>> {
     try {
       const { data, error } = await supabase
         .from('schedules')
-        .select(`
-          *,
-          assignments (
-            id,
-            class_id,
-            title,
-            description,
-            content_blocks,
-            due_at
-          )
-        `)
+        .select('*')
         .eq('id', id)
         .single();
 
       if (error) throw error;
-      if (!data) return null;
+      if (!data) return err('Schedule not found');
 
-      return this.mapToSchedule(data);
-    } catch (error) {
+      return ok(this.mapToSchedule(data));
+    } catch (error: any) {
       console.error('Error getting schedule:', error);
-      return null;
+      return err(error.message || 'Failed to get schedule');
     }
   }
 
-  async getSchedulesByUser(userId: ID): Promise<Schedule[]> {
+  async listSchedulesByStudent(
+    studentUserId: string,
+    page = 1,
+    pageSize = 10
+  ): Promise<Result<Page<Schedule>>> {
     try {
-      const { data, error } = await supabase
+      const offset = (page - 1) * pageSize;
+      const { data, error, count } = await supabase
         .from('schedules')
-        .select(`
-          *,
-          assignments (
-            id,
-            class_id,
-            title,
-            description,
-            content_blocks,
-            due_at
-          )
-        `)
-        .eq('user_id', userId)
-        .order('scheduled_at', { ascending: false });
+        .select('*', { count: 'exact' })
+        .eq('student_user_id', studentUserId)
+        .order('starts_at', { ascending: false })
+        .range(offset, offset + pageSize - 1);
 
       if (error) throw error;
 
-      return data?.map((d) => this.mapToSchedule(d)) || [];
-    } catch (error) {
-      console.error('Error getting schedules by user:', error);
-      return [];
+      const schedules = data?.map((d) => this.mapToSchedule(d)) || [];
+      const totalCount = count || 0;
+
+      return ok({
+        items: schedules,
+        page,
+        pageSize,
+        total: totalCount,
+        totalPages: Math.ceil(totalCount / pageSize),
+      });
+    } catch (error: any) {
+      console.error('Error listing schedules by student:', error);
+      return err(error.message || 'Failed to list schedules');
     }
   }
 
-  async createSchedule(schedule: Schedule): Promise<Result<Schedule>> {
+  async listSchedulesByAssignment(
+    assignmentId: string,
+    page = 1,
+    pageSize = 10
+  ): Promise<Result<Page<Schedule>>> {
+    try {
+      const offset = (page - 1) * pageSize;
+      const { data, error, count } = await supabase
+        .from('schedules')
+        .select('*', { count: 'exact' })
+        .eq('assignment_id', assignmentId)
+        .order('starts_at', { ascending: false })
+        .range(offset, offset + pageSize - 1);
+
+      if (error) throw error;
+
+      const schedules = data?.map((d) => this.mapToSchedule(d)) || [];
+      const totalCount = count || 0;
+
+      return ok({
+        items: schedules,
+        page,
+        pageSize,
+        total: totalCount,
+        totalPages: Math.ceil(totalCount / pageSize),
+      });
+    } catch (error: any) {
+      console.error('Error listing schedules by assignment:', error);
+      return err(error.message || 'Failed to list schedules');
+    }
+  }
+
+  async createSchedule(schedule: Omit<Schedule, 'id'>): Promise<Result<Schedule>> {
     try {
       const { data, error } = await supabase
         .from('schedules')
         .insert([
           {
-            id: schedule.id,
-            assignment_id: schedule.assignment.id,
-            user_id: schedule.userId,
-            scheduled_at: schedule.scheduledAt,
-            due_at: schedule.assignment.dueAt,
-            status: schedule.status || 'PENDING',
+            student_user_id: schedule.studentUserId,
+            assignment_id: schedule.assignmentId,
+            starts_at: schedule.startsAt,
+            ends_at: schedule.endsAt,
+            visibility: schedule.visibility,
           },
         ])
-        .select(`
-          *,
-          assignments (
-            id,
-            class_id,
-            title,
-            description,
-            content_blocks,
-            due_at
-          )
-        `)
+        .select('*')
         .single();
 
       if (error) throw error;
@@ -101,21 +117,14 @@ export class SupabaseScheduleRepository implements IScheduleRepository {
       const { data, error } = await supabase
         .from('schedules')
         .update({
-          status: schedule.status,
-          due_at: schedule.assignment.dueAt,
+          student_user_id: schedule.studentUserId,
+          assignment_id: schedule.assignmentId,
+          starts_at: schedule.startsAt,
+          ends_at: schedule.endsAt,
+          visibility: schedule.visibility,
         })
         .eq('id', schedule.id)
-        .select(`
-          *,
-          assignments (
-            id,
-            class_id,
-            title,
-            description,
-            content_blocks,
-            due_at
-          )
-        `)
+        .select('*')
         .single();
 
       if (error) throw error;
@@ -127,7 +136,7 @@ export class SupabaseScheduleRepository implements IScheduleRepository {
     }
   }
 
-  async deleteSchedule(id: ID): Promise<Result<boolean>> {
+  async deleteSchedule(id: string): Promise<Result<boolean>> {
     try {
       const { error } = await supabase.from('schedules').delete().eq('id', id);
 
@@ -141,20 +150,13 @@ export class SupabaseScheduleRepository implements IScheduleRepository {
   }
 
   private mapToSchedule(data: any): Schedule {
-    const assignment = data.assignments;
     return {
       id: data.id,
-      assignment: {
-        id: assignment.id,
-        classId: assignment.class_id,
-        title: assignment.title,
-        description: assignment.description,
-        contentBlocks: assignment.content_blocks || [],
-        dueAt: assignment.due_at,
-      },
-      userId: data.user_id,
-      scheduledAt: data.scheduled_at,
-      status: data.status,
+      studentUserId: data.student_user_id,
+      assignmentId: data.assignment_id,
+      startsAt: data.starts_at,
+      endsAt: data.ends_at,
+      visibility: data.visibility,
     };
   }
 }

@@ -5,9 +5,10 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { observer } from 'mobx-react-lite';
 import { useAppContext } from '../context/AppContext';
 
-export const ProfileScreen = observer(({ onEdit, onLogout }: {
+export const ProfileScreen = observer(({ onEdit, onLogout, onManageLocation }: {
   onEdit: () => void;
   onLogout: () => void;
+  onManageLocation?: () => void;
 }) => {
   const theme = useTheme();
   const { authVM } = useAppContext();
@@ -89,6 +90,77 @@ export const ProfileScreen = observer(({ onEdit, onLogout }: {
           </View>
         </Card.Content>
       </Card>
+
+      {/* Account Status */}
+      <View style={[styles.statusCard, { backgroundColor: theme.colors.tertiaryContainer }]}>
+        <MaterialCommunityIcons name="check-circle" size={24} color={theme.colors.tertiary} />
+        <View style={{ flex: 1, marginLeft: 12 }}>
+          <Text variant="labelLarge" style={{ color: theme.colors.tertiary, marginBottom: 2 }}>
+            Account Status
+          </Text>
+          <Text variant="bodySmall" style={{ color: theme.colors.onTertiaryContainer }}>
+            Active & Verified
+          </Text>
+        </View>
+      </View>
+
+      {/* Location Section */}
+      {authVM.currentLocation && (
+        <Card style={[styles.locationCard, { backgroundColor: theme.colors.primaryContainer }]}>
+          <Card.Content>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+              <MaterialCommunityIcons name="map-marker" size={24} color={theme.colors.primary} />
+              <Text variant="titleMedium" style={[styles.locationTitle, { color: theme.colors.primary, marginLeft: 8 }]}>
+                Your Location
+              </Text>
+            </View>
+            <Divider style={{ marginVertical: 8 }} />
+            <Text variant="bodySmall" style={{ color: theme.colors.onPrimaryContainer, marginBottom: 4 }}>
+              <Text style={{ fontWeight: 'bold' }}>Coordinates:</Text> {authVM.currentLocation.lat.toFixed(4)}, {authVM.currentLocation.lng.toFixed(4)}
+            </Text>
+            {authVM.currentLocation.address && (
+              <Text variant="bodySmall" style={{ color: theme.colors.onPrimaryContainer }}>
+                <Text style={{ fontWeight: 'bold' }}>Address:</Text> {authVM.currentLocation.address}
+              </Text>
+            )}
+            {onManageLocation && (
+              <Button
+                mode="text"
+                compact
+                onPress={onManageLocation}
+                contentStyle={{ marginTop: 8 }}
+                labelStyle={{ color: theme.colors.primary }}
+              >
+                Update Location
+              </Button>
+            )}
+          </Card.Content>
+        </Card>
+      )}
+
+      {!authVM.currentLocation && onManageLocation && (
+        <Card style={[styles.noLocationCard, { backgroundColor: theme.colors.secondaryContainer }]}>
+          <Card.Content>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+              <MaterialCommunityIcons name="map-marker-off" size={24} color={theme.colors.secondary} />
+              <Text variant="titleMedium" style={[{ color: theme.colors.secondary, marginLeft: 8 }]}>
+                No Location Set
+              </Text>
+            </View>
+            <Text variant="bodySmall" style={{ color: theme.colors.onSecondaryContainer, marginBottom: 12 }}>
+              Add your location to help us provide better recommendations and connect with nearby tutors.
+            </Text>
+            <Button
+              mode="contained"
+              compact
+              onPress={onManageLocation}
+              contentStyle={{ marginTop: 8 }}
+            >
+              Add Location
+            </Button>
+          </Card.Content>
+        </Card>
+      )}
 
       {/* Account Status */}
       <View style={[styles.statusCard, { backgroundColor: theme.colors.tertiaryContainer }]}>
@@ -192,6 +264,17 @@ const styles = StyleSheet.create({
   },
   profileCard: {
     marginBottom: 20,
+    borderRadius: 12,
+  },
+  locationCard: {
+    marginBottom: 16,
+    borderRadius: 12,
+  },
+  locationTitle: {
+    fontWeight: 'bold',
+  },
+  noLocationCard: {
+    marginBottom: 16,
     borderRadius: 12,
   },
   profileContent: {
