@@ -1,31 +1,36 @@
 /**
  * Initialization service for app startup.
- * Handles SQLite database initialization and other setup.
+ * Handles Supabase connection and SQLite for offline sync.
  */
 
 import { Platform } from 'react-native';
 
 export const initializeApp = async (): Promise<void> => {
   try {
-    // Skip SQLite initialization on web (not supported)
-    if (Platform.OS === 'web') {
-      console.log('⚠ Running on web - using in-memory storage (data will not persist)');
-      return;
+    console.log('🚀 Initializing app...');
+
+    // Initialize Supabase connection (works on all platforms)
+    const { default: supabase } = await import('../data/supabase/supabaseClient');
+    
+    // Test Supabase connection
+    const { data, error } = await supabase.from('users').select('count').limit(1);
+    if (!error) {
+      console.log('✓ Supabase connected successfully');
+    } else {
+      console.warn('⚠ Supabase connection issue:', error.message);
     }
 
-    // Only import SQLite modules on native platforms
-    const { sqliteDb } = await import('../data/sqlite/SQLiteDatabase');
-    const { SQLiteAssignmentRepository } = await import('../data/sqlite/SQLiteAssignmentRepository');
-    const { seedDemoData } = await import('./seedData');
+    // Initialize SQLite for offline storage (mobile only)
+    if (Platform.OS !== 'web') {
+      const { sqliteDb } = await import('../data/sqlite/SQLiteDatabase');
+      await sqliteDb.initialize();
+      console.log('✓ SQLite database initialized for offline sync');
+    } else {
+      console.log('⚠ Running on web - SQLite not available, using Supabase only');
+    }
 
-    await sqliteDb.initialize();
-    console.log('✓ SQLite database initialized');
-
-    // Seed demo data
-    const assignmentRepo = new SQLiteAssignmentRepository();
-    await seedDemoData(assignmentRepo);
   } catch (e) {
     console.error('✗ Failed to initialize app:', e);
-    // Don't throw - allow app to continue with in-memory storage
+    // Don't throw - allow app to continue
   }
 };
