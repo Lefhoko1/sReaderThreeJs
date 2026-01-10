@@ -4,10 +4,11 @@
  * Single responsibility: authentication and user account operations.
  */
 
-import { makeAutoObservable } from 'mobx';
+import { makeAutoObservable, runInAction } from 'mobx';
 import { Result, ok, err } from '../../shared/result';
 import { User, Profile } from '../../domain/entities/user';
 import { IUserRepository } from '../../data/repositories/IUserRepository';
+import supabase from '../../data/supabase/supabaseClient';
 
 export class AuthViewModel {
   currentUser: User | null = null;
@@ -61,23 +62,99 @@ export class AuthViewModel {
       return err(this.error);
     }
 
-    const result = await this.userRepo.createUser({
-      roles: ['STUDENT'] as any,
-      email: data.email,
-      displayName: data.displayName,
-    });
+    let result: Result<User> = err('Signup failed');
 
-    if (result.ok) {
-      this.currentUser = result.value;
-      const profileRes = await this.userRepo.getProfile(result.value.id);
-      if (profileRes.ok) {
-        this.currentProfile = profileRes.value;
+    try {
+      // 1. Create auth user with Supabase Auth
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+      });
+
+      if (signUpError) {
+        this.error = signUpError.message || 'Signup failed';
+        this.loading = false;
+        return err(this.error);
       }
-      this.successMessage = `Welcome, ${data.displayName}! Account created successfully.`;
-    } else {
-      this.error = result.error;
+
+      if (!authData.user) {
+        this.error = 'Failed to create user account';
+        this.loading = false;
+        return err(this.error);
+      }
+
+      // 2. Create user record in database with the Supabase Auth user ID
+      // This ensures login can find the user by auth user ID
+      const now = new Date().toISOString();
+      const { data: userData, error: insertError } = await supabase
+        .from('users')
+        .insert([
+          {
+            id: authData.user.id, // Use Supabase Auth user ID as our database ID
+            email: data.email,
+            phone: null,
+            display_name: data.displayName,
+            avatar_url: null,
+            roles: ['STUDENT'],
+            created_at: now,
+            updated_at: now,
+          },
+        ])
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error('Failed to create user record:', insertError);
+        this.error = 'Failed to create user profile';
+        this.loading = false;
+        return err(this.error);
+      }
+
+      if (!userData) {
+        this.error = 'Failed to create user record';
+        this.loading = false;
+        return err(this.error);
+      }
+
+      // Convert database row to User object
+      const newUser: User = {
+        id: userData.id,
+        roles: userData.roles || ['STUDENT'],
+        email: userData.email,
+        phone: userData.phone,
+        displayName: userData.display_name,
+        avatarUrl: userData.avatar_url,
+        createdAt: userData.created_at,
+        updatedAt: userData.updated_at,
+      };
+
+      result = ok(newUser);
+
+      runInAction(() => {
+        if (result.ok) {
+          this.currentUser = result.value;
+          this.successMessage = `Welcome, ${data.displayName}! Account created successfully.`;
+        } else {
+          this.error = result.error;
+        }
+      });
+
+      if (result.ok) {
+        const profileRes = await this.userRepo.getProfile(result.value.id);
+        runInAction(() => {
+          if (profileRes.ok) {
+            this.currentProfile = profileRes.value;
+          }
+        });
+      }
+    } catch (error: any) {
+      runInAction(() => {
+        this.error = error.message || 'Signup failed';
+      });
     }
-    this.loading = false;
+    runInAction(() => {
+      this.loading = false;
+    });
     return result;
   }
 
@@ -92,20 +169,63 @@ export class AuthViewModel {
       return err(this.error);
     }
 
-    // TODO: In production, call backend auth endpoint with password verification
-    const result = await this.userRepo.getUser(email);
-    if (result.ok) {
-      this.currentUser = result.value;
-      const profileRes = await this.userRepo.getProfile(result.value.id);
-      if (profileRes.ok) {
-        this.currentProfile = profileRes.value;
+    try {
+      // 1. Authenticate with Supabase Auth
+      const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (signInError) {
+        console.error('Supabase signIn error:', signInError);
+        // Check if user needs email confirmation
+        if (signInError.message && signInError.message.includes('not confirmed')) {
+          this.error = 'Please confirm your email before logging in';
+        } else {
+          this.error = signInError.message || 'Invalid email or password';
+        }
+        this.loading = false;
+        return err(this.error);
       }
-      this.successMessage = `Welcome back, ${result.value.displayName}!`;
-    } else {
-      this.error = 'Invalid email or password';
+
+      if (!authData.user) {
+        this.error = 'Login failed';
+        this.loading = false;
+        return err(this.error);
+      }
+
+      // 2. Get user from database
+      const result = await this.userRepo.getUser(authData.user.id);
+      
+      runInAction(() => {
+        if (result.ok) {
+          this.currentUser = result.value;
+          this.successMessage = `Welcome back, ${result.value.displayName}!`;
+        } else {
+          this.error = 'Could not load user profile';
+        }
+      });
+
+      if (result.ok) {
+        const profileRes = await this.userRepo.getProfile(result.value.id);
+        runInAction(() => {
+          if (profileRes.ok) {
+            this.currentProfile = profileRes.value;
+          }
+        });
+      }
+      
+      return result;
+    } catch (error: any) {
+      runInAction(() => {
+        this.error = error.message || 'Login failed';
+      });
+      return err(this.error);
+    } finally {
+      runInAction(() => {
+        this.loading = false;
+      });
     }
-    this.loading = false;
-    return result;
   }
 
   async requestPasswordReset(email: string): Promise<Result<boolean>> {
@@ -186,10 +306,17 @@ export class AuthViewModel {
   }
 
   async logout(): Promise<void> {
-    this.currentUser = null;
-    this.currentProfile = null;
-    this.error = null;
-    this.successMessage = null;
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+    runInAction(() => {
+      this.currentUser = null;
+      this.currentProfile = null;
+      this.error = null;
+      this.successMessage = null;
+    });
   }
 
   async updateProfile(profile: Profile): Promise<Result<Profile>> {

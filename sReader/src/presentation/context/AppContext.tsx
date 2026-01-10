@@ -11,7 +11,9 @@ import { IUserRepository, IAssignmentRepository, IScheduleRepository } from '../
 import { SQLiteUserRepository } from '../../data/sqlite/SQLiteUserRepository';
 import { SQLiteAssignmentRepository } from '../../data/sqlite/SQLiteAssignmentRepository';
 import { SQLiteScheduleRepository } from '../../data/sqlite/SQLiteScheduleRepository';
-import { InMemoryUserRepository } from '../../data/memory/InMemoryUserRepository';
+import { SupabaseUserRepository } from '../../data/supabase/SupabaseUserRepository';
+import { SupabaseAssignmentRepository } from '../../data/supabase/SupabaseAssignmentRepository';
+import { SupabaseScheduleRepository } from '../../data/supabase/SupabaseScheduleRepository';
 import { InMemoryAssignmentRepository } from '../../data/memory/InMemoryAssignmentRepository';
 import { InMemoryScheduleRepository } from '../../data/memory/InMemoryScheduleRepository';
 import { AuthViewModel, AssignmentViewModel, ScheduleViewModel } from '../../application/viewmodels';
@@ -42,9 +44,11 @@ export function AppContextProvider(props: AppContextProviderProps) {
   const [isSeeded, setIsSeeded] = useState(false);
 
   // Initialize repositories based on platform
-  const userRepo = Platform.OS === 'web' ? new InMemoryUserRepository() : new SQLiteUserRepository();
-  const assignmentRepo = Platform.OS === 'web' ? new InMemoryAssignmentRepository() : new SQLiteAssignmentRepository();
-  const scheduleRepo = Platform.OS === 'web' ? new InMemoryScheduleRepository() : new SQLiteScheduleRepository();
+  // Web: Use Supabase for all (database backend)
+  // Native: Use SQLite for offline storage
+  const userRepo = Platform.OS === 'web' ? new SupabaseUserRepository() : new SQLiteUserRepository();
+  const assignmentRepo = Platform.OS === 'web' ? new SupabaseAssignmentRepository() : new SQLiteAssignmentRepository();
+  const scheduleRepo = Platform.OS === 'web' ? new SupabaseScheduleRepository() : new SQLiteScheduleRepository();
 
   // Initialize ViewModels
   const authVM = new AuthViewModel(userRepo);
@@ -52,16 +56,16 @@ export function AppContextProvider(props: AppContextProviderProps) {
   const scheduleVM = new ScheduleViewModel(scheduleRepo);
   const dashboardVM = new DashboardViewModel();
 
-  // Seed in-memory data for web platform
+  // Seed Supabase data on web platform startup
   useEffect(() => {
     const seedData = async () => {
       if (Platform.OS === 'web' && !isSeeded) {
         try {
-          await seedInMemoryData(assignmentRepo);
+          // Supabase will auto-seed via initialization.ts if tables are empty
+          console.log('✓ Using Supabase backend for web');
           setIsSeeded(true);
-          console.log('✓ In-memory data seeded successfully');
         } catch (error) {
-          console.error('✗ Failed to seed in-memory data:', error);
+          console.error('✗ Failed to initialize Supabase:', error);
         }
       }
     };

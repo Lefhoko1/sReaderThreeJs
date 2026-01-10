@@ -1,12 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
-import Constants from 'expo-constants';
 
 // Get Supabase URL and Anon Key from environment variables
-const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl || '';
-const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey || '';
+// For Expo: use EXPO_PUBLIC_ prefix which is automatically available
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('⚠️ Supabase URL or Anon Key not found. Using mock mode.');
+  console.warn('⚠️ Supabase URL or Anon Key not found. Make sure EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY are set.');
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {

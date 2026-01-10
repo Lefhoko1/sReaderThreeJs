@@ -1,11 +1,11 @@
 import { IUserRepository } from '../repositories/IUserRepository';
 import { User, Profile, Location, Device } from '../../domain/entities/user';
 import { Result, ok, err } from '../../shared/result';
-import { ID } from '../../shared/types';
+import { ID, Page } from '../../shared/types';
 import supabase from './supabaseClient';
 
 export class SupabaseUserRepository implements IUserRepository {
-  async getUserById(id: ID): Promise<User | null> {
+  async getUser(id: ID): Promise<Result<User>> {
     try {
       const { data, error } = await supabase
         .from('users')
@@ -13,17 +13,21 @@ export class SupabaseUserRepository implements IUserRepository {
         .eq('id', id)
         .single();
 
-      if (error) throw error;
-      if (!data) return null;
+      if (error) {
+        return err(error.message || 'User not found');
+      }
+      if (!data) {
+        return err('User not found');
+      }
 
-      return this.mapToUser(data);
-    } catch (error) {
-      console.error('Error getting user by ID:', error);
-      return null;
+      return ok(this.mapToUser(data));
+    } catch (error: any) {
+      console.error('Error getting user:', error);
+      return err(error.message || 'Failed to get user');
     }
   }
 
-  async getUserByEmail(email: string): Promise<User | null> {
+  async getUserByEmail(email: string): Promise<Result<User>> {
     try {
       const { data, error } = await supabase
         .from('users')
@@ -31,13 +35,17 @@ export class SupabaseUserRepository implements IUserRepository {
         .eq('email', email)
         .single();
 
-      if (error) throw error;
-      if (!data) return null;
+      if (error) {
+        return err(error.message || 'User not found');
+      }
+      if (!data) {
+        return err('User not found');
+      }
 
-      return this.mapToUser(data);
-    } catch (error) {
+      return ok(this.mapToUser(data));
+    } catch (error: any) {
       console.error('Error getting user by email:', error);
-      return null;
+      return err(error.message || 'Failed to get user');
     }
   }
 
@@ -59,27 +67,42 @@ export class SupabaseUserRepository implements IUserRepository {
     }
   }
 
-  async createUser(user: User): Promise<Result<User>> {
+  async createUser(user: Omit<User, 'id'|'createdAt'|'updatedAt'>): Promise<Result<User>> {
     try {
+      // Generate ID and timestamps
+      const id = crypto.randomUUID();
+      const now = new Date().toISOString();
+      
+      console.log('Creating user with data:', {
+        id,
+        email: user.email,
+        displayName: user.displayName,
+        roles: user.roles,
+      });
+      
       const { data, error } = await supabase
         .from('users')
         .insert([
           {
-            id: user.id,
+            id,
             email: user.email,
             phone: user.phone,
             display_name: user.displayName,
             avatar_url: user.avatarUrl,
             roles: user.roles,
-            created_at: user.createdAt,
-            updated_at: user.updatedAt,
+            created_at: now,
+            updated_at: now,
           },
         ])
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase insert error:', error);
+        throw error;
+      }
 
+      console.log('User created successfully:', data);
       return ok(this.mapToUser(data));
     } catch (error: any) {
       console.error('Error creating user:', error);
@@ -125,7 +148,7 @@ export class SupabaseUserRepository implements IUserRepository {
     }
   }
 
-  async getProfile(userId: ID): Promise<Profile | null> {
+  async getProfile(userId: ID): Promise<Result<Profile>> {
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -133,22 +156,26 @@ export class SupabaseUserRepository implements IUserRepository {
         .eq('user_id', userId)
         .single();
 
-      if (error) throw error;
-      if (!data) return null;
+      if (error) {
+        return err(error.message || 'Profile not found');
+      }
+      if (!data) {
+        return err('Profile not found');
+      }
 
-      return {
+      return ok({
         userId: data.user_id,
         bio: data.bio,
         locationConsent: data.location_consent,
         notificationPrefs: data.notification_prefs,
-      };
-    } catch (error) {
+      });
+    } catch (error: any) {
       console.error('Error getting profile:', error);
-      return null;
+      return err(error.message || 'Failed to get profile');
     }
   }
 
-  async saveProfile(profile: Profile): Promise<Result<void>> {
+  async updateProfile(profile: Profile): Promise<Result<Profile>> {
     try {
       const { error } = await supabase.from('profiles').upsert({
         user_id: profile.userId,
@@ -159,10 +186,10 @@ export class SupabaseUserRepository implements IUserRepository {
 
       if (error) throw error;
 
-      return ok(undefined);
+      return ok(profile);
     } catch (error: any) {
-      console.error('Error saving profile:', error);
-      return err(error.message || 'Failed to save profile');
+      console.error('Error updating profile:', error);
+      return err(error.message || 'Failed to update profile');
     }
   }
 
@@ -224,6 +251,94 @@ export class SupabaseUserRepository implements IUserRepository {
     } catch (error: any) {
       console.error('Error saving device:', error);
       return err(error.message || 'Failed to save device');
+    }
+  }
+
+  async listUsers(page: number = 1, pageSize: number = 10): Promise<Result<Page<User>>> {
+    try {
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+
+      const { data, error, count } = await supabase
+        .from('users')
+        .select('*', { count: 'exact' })
+        .range(from, to);
+
+      if (error) throw error;
+
+      return ok({
+        items: (data || []).map(d => this.mapToUser(d)),
+        total: count || 0,
+        page,
+        pageSize,
+      });
+    } catch (error: any) {
+      console.error('Error listing users:', error);
+      return err(error.message || 'Failed to list users');
+    }
+  }
+
+  async listDevices(userId: ID): Promise<Result<Device[]>> {
+    try {
+      const { data, error } = await supabase
+        .from('devices')
+        .select('*')
+        .eq('user_id', userId);
+
+      if (error) throw error;
+
+      return ok((data || []).map(d => ({
+        id: d.id,
+        userId: d.user_id,
+        pushToken: d.push_token,
+        platform: d.platform,
+      })));
+    } catch (error: any) {
+      console.error('Error listing devices:', error);
+      return err(error.message || 'Failed to list devices');
+    }
+  }
+
+  async registerDevice(device: Device): Promise<Result<Device>> {
+    try {
+      const { data, error } = await supabase
+        .from('devices')
+        .insert([{
+          id: device.id,
+          user_id: device.userId,
+          push_token: device.pushToken,
+          platform: device.platform,
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      return ok({
+        id: data.id,
+        userId: data.user_id,
+        pushToken: data.push_token,
+        platform: data.platform,
+      });
+    } catch (error: any) {
+      console.error('Error registering device:', error);
+      return err(error.message || 'Failed to register device');
+    }
+  }
+
+  async revokeDevice(id: string): Promise<Result<boolean>> {
+    try {
+      const { error } = await supabase
+        .from('devices')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      return ok(true);
+    } catch (error: any) {
+      console.error('Error revoking device:', error);
+      return err(error.message || 'Failed to revoke device');
     }
   }
 
