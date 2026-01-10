@@ -204,7 +204,7 @@ export class SupabaseUserRepository implements IUserRepository {
     }
   }
 
-  async getLocation(userId: ID): Promise<Location | null> {
+  async getLocation(userId: ID): Promise<Result<Location | null>> {
     try {
       const { data, error } = await supabase
         .from('locations')
@@ -212,23 +212,26 @@ export class SupabaseUserRepository implements IUserRepository {
         .eq('user_id', userId)
         .single();
 
-      if (error) throw error;
-      if (!data) return null;
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
 
-      return {
+      if (!data) return ok(null);
+
+      return ok({
         userId: data.user_id,
         lat: parseFloat(data.lat),
         lng: parseFloat(data.lng),
         address: data.address,
         updatedAt: data.updated_at,
-      };
-    } catch (error) {
+      });
+    } catch (error: any) {
       console.error('Error getting location:', error);
-      return null;
+      return err(error.message || 'Failed to get location');
     }
   }
 
-  async saveLocation(location: Location): Promise<Result<void>> {
+  async saveLocation(location: Location): Promise<Result<Location>> {
     try {
       const { error } = await supabase.from('locations').upsert({
         user_id: location.userId,
@@ -240,7 +243,7 @@ export class SupabaseUserRepository implements IUserRepository {
 
       if (error) throw error;
 
-      return ok(undefined);
+      return ok(location);
     } catch (error: any) {
       console.error('Error saving location:', error);
       return err(error.message || 'Failed to save location');

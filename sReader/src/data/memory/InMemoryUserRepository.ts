@@ -4,7 +4,7 @@
  */
 
 import { IUserRepository } from '../repositories/IUserRepository';
-import { User, Profile, Device } from '../../domain/entities/user';
+import { User, Profile, Device, Location } from '../../domain/entities/user';
 import { Result, ok, err } from '../../shared/result';
 import { Page } from '../../shared/types';
 import * as Crypto from 'expo-crypto';
@@ -13,6 +13,7 @@ export class InMemoryUserRepository implements IUserRepository {
   private users: Map<string, User> = new Map();
   private profiles: Map<string, Profile> = new Map();
   private devices: Map<string, Device> = new Map();
+  private locations: Map<string, Location> = new Map();
 
   async createUser(user: Omit<User, 'id' | 'createdAt' | 'updatedAt'>): Promise<Result<User>> {
     try {
@@ -93,5 +94,15 @@ export class InMemoryUserRepository implements IUserRepository {
   async revokeDevice(id: string): Promise<Result<boolean>> {
     this.devices.delete(id);
     return ok(true);
+  }
+
+  async getLocation(userId: string): Promise<Result<Location | null>> {
+    const location = this.locations.get(userId);
+    return ok(location || null);
+  }
+
+  async saveLocation(location: Location): Promise<Result<Location>> {
+    this.locations.set(location.userId, location);
+    return ok(location);
   }
 }

@@ -1,6 +1,6 @@
 import { Result } from '../../shared/result';
 import { Page } from '../../shared/types';
-import { User, Profile, Device } from '../../domain/entities/user';
+import { User, Profile, Device, Location } from '../../domain/entities/user';
 
 export interface IUserRepository {
   createUser(user: Omit<User, 'id'|'createdAt'|'updatedAt'>): Promise<Result<User>>;
@@ -15,4 +15,7 @@ export interface IUserRepository {
   listDevices(userId: string): Promise<Result<Device[]>>;
   registerDevice(device: Device): Promise<Result<Device>>;
   revokeDevice(id: string): Promise<Result<boolean>>;
+
+  getLocation(userId: string): Promise<Result<Location | null>>;
+  saveLocation(location: Location): Promise<Result<Location>>;
 }

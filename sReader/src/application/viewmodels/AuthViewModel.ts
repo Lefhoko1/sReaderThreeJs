@@ -534,11 +534,15 @@ export class AuthViewModel {
     });
 
     try {
-      const location = await this.userRepo.getLocation(this.currentUser!.id);
+      const result = await this.userRepo.getLocation(this.currentUser!.id);
       runInAction(() => {
-        this.currentLocation = location;
+        if (result.ok) {
+          this.currentLocation = result.value || null;
+        } else {
+          this.error = result.error;
+        }
       });
-      return ok(location);
+      return result;
     } catch (error: any) {
       const errorMsg = error.message || 'Failed to get location';
       runInAction(() => {
@@ -552,7 +556,7 @@ export class AuthViewModel {
     }
   }
 
-  async saveLocation(location: Location): Promise<Result<void>> {
+  async saveLocation(location: Location): Promise<Result<Location>> {
     if (!this.currentUser) {
       return err('No user logged in');
     }
@@ -567,7 +571,7 @@ export class AuthViewModel {
       const result = await this.userRepo.saveLocation(location);
       runInAction(() => {
         if (result.ok) {
-          this.currentLocation = location;
+          this.currentLocation = result.value;
           this.successMessage = 'Location saved successfully';
         } else {
           this.error = result.error;

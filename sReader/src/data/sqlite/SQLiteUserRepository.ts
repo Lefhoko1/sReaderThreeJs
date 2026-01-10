@@ -4,7 +4,7 @@
  */
 
 import { IUserRepository } from '../repositories/IUserRepository';
-import { User, Profile, Device } from '../../domain/entities/user';
+import { User, Profile, Device, Location } from '../../domain/entities/user';
 import { Result, ok, err } from '../../shared/result';
 import { Page } from '../../shared/types';
 import { sqliteDb } from './SQLiteDatabase';
@@ -172,5 +172,15 @@ export class SQLiteUserRepository implements IUserRepository {
   async revokeDevice(id: string): Promise<Result<boolean>> {
     // TODO: Implement
     return ok(true);
+  }
+
+  async getLocation(userId: string): Promise<Result<Location | null>> {
+    // TODO: Implement with locations table if needed
+    return ok(null);
+  }
+
+  async saveLocation(location: Location): Promise<Result<Location>> {
+    // TODO: Implement with locations table if needed
+    return ok(location);
   }
 }
