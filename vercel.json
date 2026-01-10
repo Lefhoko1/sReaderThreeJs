@@ -1,0 +1,12 @@
+{
+  "buildCommand": "cd sReader && npm install && npx expo export --platform web",
+  "outputDirectory": "sReader/dist",
+  "installCommand": "cd sReader && npm install",
+  "framework": null,
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
