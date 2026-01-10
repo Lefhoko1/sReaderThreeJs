@@ -1,0 +1,274 @@
+// Prisma Schema for sReader
+// Tables will be auto-created from this file!
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================
+// USERS & AUTH
+// ============================================
+
+model User {
+  id          String   @id @default(uuid()) @db.Uuid
+  email       String?  @unique
+  phone       String?
+  displayName String   @map("display_name")
+  avatarUrl   String?  @map("avatar_url")
+  roles       String[] @default(["LEARNER"])
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  profile        Profile?
+  location       Location?
+  devices        Device[]
+  classMemberships ClassMember[]
+  schedules      Schedule[]
+  attempts       Attempt[]
+  friendshipsFrom Friendship[] @relation("FriendshipFrom")
+  friendshipsTo   Friendship[] @relation("FriendshipTo")
+  notifications  Notification[]
+  stats          UserStats?
+  achievements   UserAchievement[]
+  ownedAssets    ContentAsset[]
+
+  @@map("users")
+}
+
+model Profile {
+  userId            String  @id @map("user_id") @db.Uuid
+  bio               String?
+  locationConsent   Boolean @default(false) @map("location_consent")
+  notificationPrefs Json    @default("{}") @map("notification_prefs")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profiles")
+}
+
+model Location {
+  userId    String   @id @map("user_id") @db.Uuid
+  lat       Decimal  @db.Decimal(10, 8)
+  lng       Decimal  @db.Decimal(11, 8)
+  address   String?
+  updatedAt DateTime @default(now()) @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("locations")
+}
+
+model Device {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  pushToken String?  @map("push_token")
+  platform  String // 'ios' | 'android' | 'web'
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("devices")
+}
+
+// ============================================
+// ORGANIZATIONS & CLASSES
+// ============================================
+
+model Organization {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  type      String // 'SCHOOL' | 'TUTORING' | 'HOMESCHOOL'
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  classes Class[]
+
+  @@map("organizations")
+}
+
+model Class {
+  id         String   @id @default(uuid()) @db.Uuid
+  orgId      String   @map("org_id") @db.Uuid
+  name       String
+  gradeLevel String?  @map("grade_level")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  members      ClassMember[]
+  assignments  Assignment[]
+
+  @@map("classes")
+}
+
+model ClassMember {
+  classId  String   @map("class_id") @db.Uuid
+  userId   String   @map("user_id") @db.Uuid
+  role     String // 'TEACHER' | 'LEARNER' | 'GUARDIAN'
+  joinedAt DateTime @default(now()) @map("joined_at")
+
+  class Class @relation(fields: [classId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([classId, userId])
+  @@map("class_members")
+}
+
+// ============================================
+// ASSIGNMENTS & CONTENT
+// ============================================
+
+model Assignment {
+  id            String   @id @default(uuid()) @db.Uuid
+  classId       String   @map("class_id") @db.Uuid
+  title         String
+  description   String?
+  contentBlocks Json     @default("[]") @map("content_blocks")
+  dueAt         DateTime? @map("due_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  class     Class              @relation(fields: [classId], references: [id], onDelete: Cascade)
+  tools     AssignmentTool[]
+  schedules Schedule[]
+  attempts  Attempt[]
+
+  @@map("assignments")
+}
+
+model AssignmentTool {
+  id           String @id @default(uuid()) @db.Uuid
+  assignmentId String @map("assignment_id") @db.Uuid
+  type         String
+  uri          String?
+  metadata     Json   @default("{}")
+
+  assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+
+  @@map("assignment_tools")
+}
+
+model ContentAsset {
+  id          String   @id @default(uuid()) @db.Uuid
+  type        String // 'ILLUSTRATION' | 'AUDIO' | 'PDF'
+  uri         String
+  checksum    String?
+  ownerUserId String?  @map("owner_user_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  owner User? @relation(fields: [ownerUserId], references: [id])
+
+  @@map("content_assets")
+}
+
+// ============================================
+// SCHEDULING & ATTEMPTS
+// ============================================
+
+model Schedule {
+  id           String    @id @default(uuid()) @db.Uuid
+  assignmentId String    @map("assignment_id") @db.Uuid
+  userId       String    @map("user_id") @db.Uuid
+  scheduledAt  DateTime  @default(now()) @map("scheduled_at")
+  dueAt        DateTime? @map("due_at")
+  status       String    @default("PENDING") // 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'OVERDUE'
+
+  assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([assignmentId])
+  @@map("schedules")
+}
+
+model Attempt {
+  id           String    @id @default(uuid()) @db.Uuid
+  assignmentId String    @map("assignment_id") @db.Uuid
+  userId       String    @map("user_id") @db.Uuid
+  startedAt    DateTime  @default(now()) @map("started_at")
+  submittedAt  DateTime? @map("submitted_at")
+  score        Decimal?  @db.Decimal(5, 2)
+  answers      Json      @default("[]")
+
+  assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("attempts")
+}
+
+// ============================================
+// SOCIAL & GAMIFICATION
+// ============================================
+
+model Friendship {
+  id         String   @id @default(uuid()) @db.Uuid
+  fromUserId String   @map("from_user_id") @db.Uuid
+  toUserId   String   @map("to_user_id") @db.Uuid
+  status     String   @default("PENDING") // 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'BLOCKED'
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  fromUser User @relation("FriendshipFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser   User @relation("FriendshipTo", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  @@unique([fromUserId, toUserId])
+  @@index([fromUserId])
+  @@index([toUserId])
+  @@map("friendships")
+}
+
+model Notification {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  type      String
+  payload   Json      @default("{}")
+  readAt    DateTime? @map("read_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("notifications")
+}
+
+model UserStats {
+  userId                    String    @id @map("user_id") @db.Uuid
+  totalScore                Int       @default(0) @map("total_score")
+  streakDays                Int       @default(0) @map("streak_days")
+  lastActiveDate            DateTime? @map("last_active_date") @db.Date
+  totalAssignmentsCompleted Int       @default(0) @map("total_assignments_completed")
+  totalTimeSpentMinutes     Int       @default(0) @map("total_time_spent_minutes")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_stats")
+}
+
+model Achievement {
+  id          String @id @default(uuid()) @db.Uuid
+  code        String @unique
+  name        String
+  description String?
+  icon        String?
+  criteria    Json   @default("{}")
+
+  userAchievements UserAchievement[]
+
+  @@map("achievements")
+}
+
+model UserAchievement {
+  userId        String   @map("user_id") @db.Uuid
+  achievementId String   @map("achievement_id") @db.Uuid
+  earnedAt      DateTime @default(now()) @map("earned_at")
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@id([userId, achievementId])
+  @@map("user_achievements")
+}
+

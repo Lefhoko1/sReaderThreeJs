@@ -1,6 +1,6 @@
 import { IUserRepository } from '../repositories/IUserRepository';
 import { User, Profile, Location, Device } from '../../domain/entities/user';
-import { Result } from '../../shared/result';
+import { Result, ok, err } from '../../shared/result';
 import { ID } from '../../shared/types';
 import supabase from './supabaseClient';
 
@@ -80,10 +80,10 @@ export class SupabaseUserRepository implements IUserRepository {
 
       if (error) throw error;
 
-      return Result.ok(this.mapToUser(data));
+      return ok(this.mapToUser(data));
     } catch (error: any) {
       console.error('Error creating user:', error);
-      return Result.fail(error.message || 'Failed to create user');
+      return err(error.message || 'Failed to create user');
     }
   }
 
@@ -105,23 +105,23 @@ export class SupabaseUserRepository implements IUserRepository {
 
       if (error) throw error;
 
-      return Result.ok(this.mapToUser(data));
+      return ok(this.mapToUser(data));
     } catch (error: any) {
       console.error('Error updating user:', error);
-      return Result.fail(error.message || 'Failed to update user');
+      return err(error.message || 'Failed to update user');
     }
   }
 
-  async deleteUser(id: ID): Promise<Result<void>> {
+  async deleteUser(id: ID): Promise<Result<boolean>> {
     try {
       const { error } = await supabase.from('users').delete().eq('id', id);
 
       if (error) throw error;
 
-      return Result.ok(undefined);
+      return ok(true);
     } catch (error: any) {
       console.error('Error deleting user:', error);
-      return Result.fail(error.message || 'Failed to delete user');
+      return err(error.message || 'Failed to delete user');
     }
   }
 
@@ -159,10 +159,10 @@ export class SupabaseUserRepository implements IUserRepository {
 
       if (error) throw error;
 
-      return Result.ok(undefined);
+      return ok(undefined);
     } catch (error: any) {
       console.error('Error saving profile:', error);
-      return Result.fail(error.message || 'Failed to save profile');
+      return err(error.message || 'Failed to save profile');
     }
   }
 
@@ -202,10 +202,10 @@ export class SupabaseUserRepository implements IUserRepository {
 
       if (error) throw error;
 
-      return Result.ok(undefined);
+      return ok(undefined);
     } catch (error: any) {
       console.error('Error saving location:', error);
-      return Result.fail(error.message || 'Failed to save location');
+      return err(error.message || 'Failed to save location');
     }
   }
 
@@ -220,10 +220,10 @@ export class SupabaseUserRepository implements IUserRepository {
 
       if (error) throw error;
 
-      return Result.ok(undefined);
+      return ok(undefined);
     } catch (error: any) {
       console.error('Error saving device:', error);
-      return Result.fail(error.message || 'Failed to save device');
+      return err(error.message || 'Failed to save device');
     }
   }
 

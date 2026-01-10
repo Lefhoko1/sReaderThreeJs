@@ -1,6 +1,6 @@
 import { IScheduleRepository } from '../repositories/IScheduleRepository';
 import { Schedule } from '../../domain/entities/schedule';
-import { Result } from '../../shared/result';
+import { Result, ok, err } from '../../shared/result';
 import { ID } from '../../shared/types';
 import supabase from './supabaseClient';
 
@@ -89,10 +89,10 @@ export class SupabaseScheduleRepository implements IScheduleRepository {
 
       if (error) throw error;
 
-      return Result.ok(this.mapToSchedule(data));
+      return ok(this.mapToSchedule(data));
     } catch (error: any) {
       console.error('Error creating schedule:', error);
-      return Result.fail(error.message || 'Failed to create schedule');
+      return err(error.message || 'Failed to create schedule');
     }
   }
 
@@ -120,23 +120,23 @@ export class SupabaseScheduleRepository implements IScheduleRepository {
 
       if (error) throw error;
 
-      return Result.ok(this.mapToSchedule(data));
+      return ok(this.mapToSchedule(data));
     } catch (error: any) {
       console.error('Error updating schedule:', error);
-      return Result.fail(error.message || 'Failed to update schedule');
+      return err(error.message || 'Failed to update schedule');
     }
   }
 
-  async deleteSchedule(id: ID): Promise<Result<void>> {
+  async deleteSchedule(id: ID): Promise<Result<boolean>> {
     try {
       const { error } = await supabase.from('schedules').delete().eq('id', id);
 
       if (error) throw error;
 
-      return Result.ok(undefined);
+      return ok(true);
     } catch (error: any) {
       console.error('Error deleting schedule:', error);
-      return Result.fail(error.message || 'Failed to delete schedule');
+      return err(error.message || 'Failed to delete schedule');
     }
   }
 

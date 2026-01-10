@@ -1,6 +1,6 @@
 import { IAssignmentRepository } from '../repositories/IAssignmentRepository';
 import { Assignment, AssignmentTool, ContentAsset } from '../../domain/entities/assignment';
-import { Result } from '../../shared/result';
+import { Result, ok, err } from '../../shared/result';
 import { ID } from '../../shared/types';
 import supabase from './supabaseClient';
 
@@ -59,10 +59,10 @@ export class SupabaseAssignmentRepository implements IAssignmentRepository {
 
       if (error) throw error;
 
-      return Result.ok(this.mapToAssignment(data));
+      return ok(this.mapToAssignment(data));
     } catch (error: any) {
       console.error('Error creating assignment:', error);
-      return Result.fail(error.message || 'Failed to create assignment');
+      return err(error.message || 'Failed to create assignment');
     }
   }
 
@@ -83,23 +83,23 @@ export class SupabaseAssignmentRepository implements IAssignmentRepository {
 
       if (error) throw error;
 
-      return Result.ok(this.mapToAssignment(data));
+      return ok(this.mapToAssignment(data));
     } catch (error: any) {
       console.error('Error updating assignment:', error);
-      return Result.fail(error.message || 'Failed to update assignment');
+      return err(error.message || 'Failed to update assignment');
     }
   }
 
-  async deleteAssignment(id: ID): Promise<Result<void>> {
+  async deleteAssignment(id: ID): Promise<Result<boolean>> {
     try {
       const { error } = await supabase.from('assignments').delete().eq('id', id);
 
       if (error) throw error;
 
-      return Result.ok(undefined);
+      return ok(true);
     } catch (error: any) {
       console.error('Error deleting assignment:', error);
-      return Result.fail(error.message || 'Failed to delete assignment');
+      return err(error.message || 'Failed to delete assignment');
     }
   }
 
@@ -145,7 +145,7 @@ export class SupabaseAssignmentRepository implements IAssignmentRepository {
 
       if (error) throw error;
 
-      return Result.ok({
+      return ok({
         id: data.id,
         type: data.type,
         uri: data.uri,
@@ -154,7 +154,7 @@ export class SupabaseAssignmentRepository implements IAssignmentRepository {
       });
     } catch (error: any) {
       console.error('Error saving asset:', error);
-      return Result.fail(error.message || 'Failed to save asset');
+      return err(error.message || 'Failed to save asset');
     }
   }
 

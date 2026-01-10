@@ -11,13 +11,21 @@ export const initializeApp = async (): Promise<void> => {
 
     // Initialize Supabase connection (works on all platforms)
     const { default: supabase } = await import('../data/supabase/supabaseClient');
+    const { seedSupabaseData } = await import('../data/supabase/setupDatabase');
     
     // Test Supabase connection
     const { data, error } = await supabase.from('users').select('count').limit(1);
+    
     if (!error) {
       console.log('✓ Supabase connected successfully');
+      
+      // Seed demo data if needed
+      await seedSupabaseData();
     } else {
       console.warn('⚠ Supabase connection issue:', error.message);
+      console.log('💡 Make sure to:');
+      console.log('   1. Set up .env file with your Supabase credentials');
+      console.log('   2. Run the SQL schema in Supabase SQL Editor (see supabase-schema.sql)');
     }
 
     // Initialize SQLite for offline storage (mobile only)
