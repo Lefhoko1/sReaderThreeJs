@@ -232,6 +232,7 @@ export const FriendsScreen = observer(({ onBack }: { onBack?: () => void }) => {
                 setSelectedProfile({
                   studentId,
                   viewMode: 'friend',
+                  friendshipId,
                 });
                 setViewMode('profile');
               }}

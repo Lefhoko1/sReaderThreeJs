@@ -95,6 +95,17 @@ export const StudentProfileScreen = observer(
       }
     };
 
+    const handleUnfriend = async () => {
+      if (!friendshipId) return;
+      try {
+        setActionLoading(true);
+        await friendshipVM.removeFriend(friendshipId);
+        onAction?.();
+      } finally {
+        setActionLoading(false);
+      }
+    };
+
     if (loading) {
       return (
         <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -252,6 +263,19 @@ export const StudentProfileScreen = observer(
                   Decline Request
                 </Button>
               </>
+            )}
+
+            {viewMode === 'friend' && (
+              <Button
+                mode="outlined"
+                onPress={handleUnfriend}
+                loading={actionLoading}
+                disabled={actionLoading}
+                style={[styles.button, { borderColor: theme.colors.error }]}
+                textColor={theme.colors.error}
+              >
+                Unfriend
+              </Button>
             )}
           </View>
 
