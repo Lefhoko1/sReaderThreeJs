@@ -41,12 +41,21 @@ export const FriendsScreen = observer(({ onBack }: { onBack?: () => void }) => {
     }
   }, [currentTab, user, viewMode]);
 
-  // Initial load
+  // Initial load - load all data so counters are populated
   useEffect(() => {
     if (user) {
-      loadTabData(currentTab);
+      loadAllData();
     }
   }, [user]);
+
+  const loadAllData = async () => {
+    if (!user) return;
+    await Promise.all([
+      friendshipVM.loadStudents(user.id),
+      friendshipVM.loadPendingRequests(user.id),
+      friendshipVM.loadFriends(user.id),
+    ]);
+  };
 
   const loadTabData = async (tab: TabName) => {
     if (!user) return;

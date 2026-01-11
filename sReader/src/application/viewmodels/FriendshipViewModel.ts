@@ -63,10 +63,20 @@ export class FriendshipViewModel {
             .filter((id): id is string => !!id)
         : [];
 
+      // Load pending requests to exclude them
+      const pendingResult = await this.friendshipRepo.listPending(excludeUserId);
+      const pendingRequestIds = pendingResult.ok 
+        ? pendingResult.value
+            .map(f => (f as FriendshipWithUser).user?.id)
+            .filter((id): id is string => !!id)
+        : [];
+
       runInAction(() => {
-        // Exclude current user and already-friended users
+        // Exclude current user, already-friended users, and users with pending requests
         this.students = studentsResult.value.filter(
-          (student: User) => student.id !== excludeUserId && !friendIds.includes(student.id)
+          (student: User) => student.id !== excludeUserId 
+            && !friendIds.includes(student.id)
+            && !pendingRequestIds.includes(student.id)
         );
         this.loading = false;
       });
