@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, StyleSheet, FlatList, Image, TouchableOpacity } from 'react-native';
 import { Card, Text, useTheme, Badge, Avatar, Button } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { observer } from 'mobx-react-lite';
 import { FriendshipViewModel } from '../../application/viewmodels/FriendshipViewModel';
 import { SupabaseFriendshipRepository } from '../../data/supabase/SupabaseFriendshipRepository';
@@ -29,6 +30,13 @@ export const FriendsWidget = observer(({
   useEffect(() => {
     loadFriendData();
   }, []);
+
+  // Reload data when component comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      loadFriendData();
+    }, [userId])
+  );
 
   const loadFriendData = async () => {
     await friendshipVM.loadFriends(userId);

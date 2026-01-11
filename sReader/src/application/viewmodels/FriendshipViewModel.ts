@@ -45,23 +45,32 @@ export class FriendshipViewModel {
     this.error = null;
 
     try {
-      const result = await this.userRepo.getAllStudents();
-      if (result.ok) {
+      // Load all students
+      const studentsResult = await this.userRepo.getAllStudents();
+      if (!studentsResult.ok) {
         runInAction(() => {
-          // Exclude current user and already-friended users
-          this.students = result.value.filter(
-            (student: User) => student.id !== excludeUserId
-          );
+          this.error = studentsResult.error;
           this.loading = false;
         });
-        return ok(this.students);
-      } else {
-        runInAction(() => {
-          this.error = result.error;
-          this.loading = false;
-        });
-        return err(result.error);
+        return err(studentsResult.error);
       }
+
+      // Load existing friends to exclude them
+      const friendsResult = await this.friendshipRepo.listFriends(excludeUserId);
+      const friendIds = friendsResult.ok 
+        ? friendsResult.value
+            .map(f => (f as FriendshipWithUser).user?.id)
+            .filter((id): id is string => !!id)
+        : [];
+
+      runInAction(() => {
+        // Exclude current user and already-friended users
+        this.students = studentsResult.value.filter(
+          (student: User) => student.id !== excludeUserId && !friendIds.includes(student.id)
+        );
+        this.loading = false;
+      });
+      return ok(this.students);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to load students';
       runInAction(() => {
