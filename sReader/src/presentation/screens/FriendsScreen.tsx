@@ -14,7 +14,7 @@ type ViewMode = 'list' | 'profile';
 
 interface SelectedProfile {
   studentId: string;
-  viewMode: 'profile' | 'request';
+  viewMode: 'profile' | 'request' | 'friend';
   friendshipId?: string;
 }
 
@@ -219,6 +219,13 @@ export const FriendsScreen = observer(({ onBack }: { onBack?: () => void }) => {
             <FriendList
               friends={friendshipVM.friends}
               onRemove={handleRemoveFriend}
+              onViewProfile={(friendshipId, studentId) => {
+                setSelectedProfile({
+                  studentId,
+                  viewMode: 'friend',
+                });
+                setViewMode('profile');
+              }}
               operatingId={friendshipVM.operatingFriendshipId}
             />
           </View>

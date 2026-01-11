@@ -16,11 +16,11 @@ import { observer } from 'mobx-react-lite';
 import { useAppContext } from '../context/AppContext';
 import { FriendshipViewModel } from '../../application/viewmodels/FriendshipViewModel';
 
-type ViewMode = 'profile' | 'request';
+type ViewMode = 'profile' | 'request' | 'friend';
 
 interface StudentProfileScreenProps {
   studentId: string;
-  viewMode?: ViewMode; // 'profile' for discovery, 'request' for incoming request
+  viewMode?: ViewMode; // 'profile' for discovery, 'request' for incoming request, 'friend' for viewing friends
   friendshipId?: string; // Required if viewMode is 'request'
   onBack: () => void;
   onAction?: () => void; // Called after accept/decline/request
@@ -131,7 +131,7 @@ export const StudentProfileScreen = observer(
         <View style={styles.header}>
           <IconButton icon="arrow-left" onPress={onBack} />
           <Text variant="headlineSmall">
-            {viewMode === 'request' ? 'Friend Request' : 'Profile'}
+            {viewMode === 'request' ? 'Friend Request' : viewMode === 'friend' ? 'Friend' : 'Profile'}
           </Text>
           <View style={{ width: 40 }} />
         </View>

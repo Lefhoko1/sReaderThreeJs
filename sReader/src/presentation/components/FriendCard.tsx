@@ -8,6 +8,7 @@ interface FriendCardProps {
   friendship: FriendshipWithUser;
   user?: User;
   onRemove: () => void;
+  onViewProfile?: () => void;
   loading?: boolean;
 }
 
@@ -15,6 +16,7 @@ export const FriendCard: React.FC<FriendCardProps> = ({
   friendship,
   user,
   onRemove,
+  onViewProfile,
   loading = false,
 }) => {
   const theme = useTheme();
@@ -25,28 +27,30 @@ export const FriendCard: React.FC<FriendCardProps> = ({
   return (
     <Card style={styles.card}>
       <Card.Content style={styles.cardContent}>
-        <View style={styles.friendInfo}>
-          {displayUser.avatarUrl ? (
-            <Image
-              source={{ uri: displayUser.avatarUrl }}
-              style={styles.avatar}
-            />
-          ) : (
-            <View style={[styles.avatar, { backgroundColor: theme.colors.primaryContainer }]}>
-              <Text style={styles.avatarText}>
-                {displayUser.displayName.charAt(0).toUpperCase()}
+        <TouchableOpacity onPress={onViewProfile} activeOpacity={0.7} style={{ flex: 1 }}>
+          <View style={styles.friendInfo}>
+            {displayUser.avatarUrl ? (
+              <Image
+                source={{ uri: displayUser.avatarUrl }}
+                style={styles.avatar}
+              />
+            ) : (
+              <View style={[styles.avatar, { backgroundColor: theme.colors.primaryContainer }]}>
+                <Text style={styles.avatarText}>
+                  {displayUser.displayName.charAt(0).toUpperCase()}
+                </Text>
+              </View>
+            )}
+            <View style={styles.info}>
+              <Text variant="titleMedium" style={styles.name}>
+                {displayUser.displayName}
+              </Text>
+              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                {displayUser.email || 'No email'}
               </Text>
             </View>
-          )}
-          <View style={styles.info}>
-            <Text variant="titleMedium" style={styles.name}>
-              {displayUser.displayName}
-            </Text>
-            <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-              {displayUser.email || 'No email'}
-            </Text>
           </View>
-        </View>
+        </TouchableOpacity>
         <TouchableOpacity
           onPress={onRemove}
           disabled={loading}
@@ -62,6 +66,7 @@ export const FriendCard: React.FC<FriendCardProps> = ({
 interface FriendListProps {
   friends: FriendshipWithUser[];
   onRemove: (friendshipId: string) => void;
+  onViewProfile?: (friendshipId: string, studentId: string) => void;
   loading?: boolean;
   operatingId?: string | null;
 }
@@ -69,6 +74,7 @@ interface FriendListProps {
 export const FriendList: React.FC<FriendListProps> = ({
   friends,
   onRemove,
+  onViewProfile,
   loading = false,
   operatingId = null,
 }) => {
@@ -89,6 +95,7 @@ export const FriendList: React.FC<FriendListProps> = ({
           friendship={item}
           user={item.user}
           onRemove={() => onRemove(item.id)}
+          onViewProfile={() => onViewProfile?.(item.id, item.user?.id || '')}
           loading={operatingId === item.id}
         />
       )}
