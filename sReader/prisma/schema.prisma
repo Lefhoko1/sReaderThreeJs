@@ -40,6 +40,14 @@ model User {
   student     Student?
   guardian    Guardian?
   tutor       Tutor?
+  
+  // Tutoring system relations
+  ownedAcademies  TutoringAcademy[]      @relation("academyOwner")
+  academyMemberships AcademyMembership[] @relation("academyMembership")
+  instructorClasses TutoringClass[]      @relation("classInstructor")
+  studentRegistrations StudentRegistrationRequest[] @relation("studentRequests")
+  registrationResponses StudentRegistrationRequest[] @relation("registrationResponder")
+  studentEnrollments StudentClassEnrollment[] @relation("studentEnrollments")
 
   @@map("users")
 }
@@ -152,6 +160,177 @@ model TutorAcademy {
 
   @@id([tutorId, academyId])
   @@map("tutor_academies")
+}
+
+// ============================================
+// TUTORING BUSINESS SYSTEM
+// ============================================
+
+model TutoringAcademy {
+  id            String   @id @default(uuid()) @db.Uuid
+  ownerId       String   @map("owner_id") @db.Uuid
+  name          String
+  description   String?
+  logo          String?  @map("logo_url")
+  location      String?
+  phone         String?
+  email         String?
+  websiteUrl    String?  @map("website_url")
+  isVerified    Boolean  @default(false) @map("is_verified")
+  verifiedAt    DateTime? @map("verified_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  owner          User               @relation("academyOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  levels         TutoringLevel[]
+  subjects       TutoringSubject[]
+  classes        TutoringClass[]
+  memberships    AcademyMembership[]
+  registrations  StudentRegistrationRequest[]
+  enrollments    StudentClassEnrollment[]
+
+  @@map("tutoring_academies")
+}
+
+model TutoringLevel {
+  id          String   @id @default(uuid()) @db.Uuid
+  academyId   String   @map("academy_id") @db.Uuid
+  name        String
+  code        String
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  academy   TutoringAcademy @relation(fields: [academyId], references: [id], onDelete: Cascade)
+  subjects  TutoringSubject[]
+  classes   TutoringClass[]
+
+  @@unique([academyId, code])
+  @@map("tutoring_levels")
+}
+
+model TutoringSubject {
+  id              String   @id @default(uuid()) @db.Uuid
+  academyId       String   @map("academy_id") @db.Uuid
+  levelId         String   @map("level_id") @db.Uuid
+  name            String
+  code            String
+  description     String?
+  creditHours     Int?     @map("credit_hours")
+  costPerMonth    Decimal? @map("cost_per_month") @db.Decimal(10, 2)
+  costPerTerm     Decimal? @map("cost_per_term") @db.Decimal(10, 2)
+  costPerYear     Decimal? @map("cost_per_year") @db.Decimal(10, 2)
+  capacity        Int?
+  syllabusUrl     String?  @map("syllabus_url")
+  prerequisites   String?
+  learningOutcomes String? @map("learning_outcomes")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  academy TutoringAcademy @relation(fields: [academyId], references: [id], onDelete: Cascade)
+  level   TutoringLevel   @relation(fields: [levelId], references: [id], onDelete: Cascade)
+  classes TutoringClass[]
+
+  @@unique([academyId, levelId, code])
+  @@map("tutoring_subjects")
+}
+
+model TutoringClass {
+  id              String   @id @default(uuid()) @db.Uuid
+  academyId       String   @map("academy_id") @db.Uuid
+  levelId         String   @map("level_id") @db.Uuid
+  subjectId       String   @map("subject_id") @db.Uuid
+  instructorId    String   @map("instructor_id") @db.Uuid
+  name            String
+  code            String
+  description     String?
+  capacity        Int?
+  schedule        Json     @default("{}") @map("schedule") // {days: ['MON', 'WED'], startTime: "10:00", endTime: "11:30", timezone: "UTC"}
+  location        String?
+  platform        String?  // 'IN_PERSON' | 'ONLINE' | 'HYBRID'
+  costPerMonth    Decimal? @map("cost_per_month") @db.Decimal(10, 2)
+  costPerTerm     Decimal? @map("cost_per_term") @db.Decimal(10, 2)
+  costPerYear     Decimal? @map("cost_per_year") @db.Decimal(10, 2)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  academy      TutoringAcademy            @relation(fields: [academyId], references: [id], onDelete: Cascade)
+  level        TutoringLevel              @relation(fields: [levelId], references: [id], onDelete: Cascade)
+  subject      TutoringSubject            @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  instructor   User                       @relation("classInstructor", fields: [instructorId], references: [id], onDelete: Cascade)
+  registrations StudentRegistrationRequest[]
+  enrollments   StudentClassEnrollment[]
+
+  @@unique([academyId, code])
+  @@map("tutoring_classes")
+}
+
+model AcademyMembership {
+  id        String   @id @default(uuid()) @db.Uuid
+  academyId String   @map("academy_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  role      String   @default("INSTRUCTOR") // 'OWNER', 'ADMIN', 'INSTRUCTOR', 'ASSISTANT'
+  joinedAt  DateTime @default(now()) @map("joined_at")
+
+  academy TutoringAcademy @relation(fields: [academyId], references: [id], onDelete: Cascade)
+  user    User             @relation("academyMembership", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([academyId, userId])
+  @@map("academy_memberships")
+}
+
+model StudentRegistrationRequest {
+  id                String   @id @default(uuid()) @db.Uuid
+  studentId         String   @map("student_id") @db.Uuid
+  academyId         String   @map("academy_id") @db.Uuid
+  levelId           String   @map("level_id") @db.Uuid
+  subjectId         String?  @map("subject_id") @db.Uuid
+  classId           String   @map("class_id") @db.Uuid
+  status            String   @default("PENDING") // 'PENDING', 'APPROVED', 'REJECTED', 'WITHDRAWN'
+  requestedAt       DateTime @default(now()) @map("requested_at")
+  respondedAt       DateTime? @map("responded_at")
+  respondedBy       String?  @map("responded_by") @db.Uuid
+  rejectionReason   String?  @map("rejection_reason")
+  paymentStatus     String   @default("NOT_PAID") // 'NOT_PAID', 'PENDING', 'PAID'
+  enrollmentStartDate DateTime? @map("enrollment_start_date")
+  enrollmentEndDate DateTime? @map("enrollment_end_date")
+  costTerm          String?  @map("cost_term") // 'MONTHLY', 'TERMLY', 'YEARLY'
+  costAmount        Decimal? @map("cost_amount") @db.Decimal(10, 2)
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  student          User                 @relation("studentRequests", fields: [studentId], references: [id], onDelete: Cascade)
+  academy          TutoringAcademy      @relation(fields: [academyId], references: [id], onDelete: Cascade)
+  level            TutoringLevel        @relation(fields: [levelId], references: [id], onDelete: Cascade)
+  subject          TutoringSubject?     @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  class            TutoringClass        @relation(fields: [classId], references: [id], onDelete: Cascade)
+  respondent       User?                @relation("registrationResponder", fields: [respondedBy], references: [id], onDelete: SetNull)
+
+  @@map("student_registration_requests")
+}
+
+model StudentClassEnrollment {
+  id                  String   @id @default(uuid()) @db.Uuid
+  studentId           String   @map("student_id") @db.Uuid
+  academyId           String   @map("academy_id") @db.Uuid
+  classId             String   @map("class_id") @db.Uuid
+  enrolledAt          DateTime @default(now()) @map("enrolled_at")
+  enrollmentEndDate   DateTime? @map("enrollment_end_date")
+  paymentStatus       String   @default("PENDING") // 'PENDING', 'PAID', 'OVERDUE'
+  costPaid            Decimal  @map("cost_paid") @db.Decimal(10, 2)
+  costTerm            String   @map("cost_term") // 'MONTHLY', 'TERMLY', 'YEARLY'
+  isActive            Boolean  @default(true) @map("is_active")
+  lastPaymentDate     DateTime? @map("last_payment_date")
+  nextPaymentDueDate  DateTime? @map("next_payment_due_date")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  student  User             @relation("studentEnrollments", fields: [studentId], references: [id], onDelete: Cascade)
+  academy  TutoringAcademy  @relation(fields: [academyId], references: [id], onDelete: Cascade)
+  class    TutoringClass    @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, classId])
+  @@map("student_class_enrollments")
 }
 
 // ============================================

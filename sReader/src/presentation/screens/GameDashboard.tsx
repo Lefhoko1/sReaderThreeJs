@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
-import { View, StyleSheet, ScrollView, ImageBackground } from 'react-native';
-import { Card, Text, Button, useTheme, Avatar, ProgressBar, Chip } from 'react-native-paper';
+import { View, StyleSheet, ScrollView } from 'react-native';
+import { Card, Text, Button, useTheme, Avatar, ProgressBar, Chip, Appbar, IconButton } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { observer } from 'mobx-react-lite';
 import { useAppContext } from '../context/AppContext';
@@ -26,25 +26,44 @@ export const GameDashboard = observer(({ onNavigate }: { onNavigate: (screen: st
   const currentLocation = authVM.currentLocation;
   const unreadCount = dashboardData.unreadNotificationCount;
   const nextAssignment = dashboardData.scheduledAssignments[0]?.assignment;
-  const userScore = 2450; // Example gamification score
-  const userLevel = 8;
+  const userScore = dashboardData.totalScore || 0;
+  const userLevel = Math.floor((dashboardData.totalScore || 0) / 500) + 1;
+  const userRole = authVM.currentUser?.roles?.[0] || 'STUDENT';
 
   return (
-    <ImageBackground
-      source={require('@/assets/images/background.jpg')}
-      style={styles.backgroundImage}
-      resizeMode="cover"
-    >
+    <View style={styles.container}>
+      <Appbar.Header style={{ backgroundColor: theme.colors.surface }} elevated>
+        <Appbar.Content title={userRole === 'TUTOR' ? 'Tutor Hub' : 'My Learning'} />
+        {userRole === 'STUDENT' && (
+          <IconButton
+            icon="account-multiple"
+            size={24}
+            onPress={() => onNavigate('friends')}
+          />
+        )}
+        <IconButton
+          icon="bell"
+          size={24}
+          onPress={() => onNavigate('notifications')}
+        />
+        <IconButton
+          icon="account-circle"
+          size={24}
+          onPress={() => onNavigate('profile')}
+        />
+      </Appbar.Header>
+      
       <ScrollView
-        style={styles.container}
+        style={styles.scrollView}
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
       >
-      {/* Game Header - User Profile Card */}
-      <Card style={[styles.profileCard, { backgroundColor: theme.colors.primaryContainer }]}>
+      {/* User Profile Card */}
+      <Card style={styles.profileCard} mode="elevated" elevation={1}>
         <Card.Content style={styles.profileContent}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
             <Avatar.Text
-              size={60}
+              size={56}
               label={user?.displayName
                 ?.split(' ')
                 .map((n) => n[0])
@@ -53,15 +72,15 @@ export const GameDashboard = observer(({ onNavigate }: { onNavigate: (screen: st
               style={{ backgroundColor: theme.colors.primary }}
             />
             <View style={{ flex: 1, marginLeft: 12 }}>
-              <Text variant="titleMedium" style={{ color: theme.colors.onPrimaryContainer }}>
+              <Text variant="titleMedium">
                 {user?.displayName}
               </Text>
               <Chip
                 icon="star"
+                compact
                 style={{
-                  backgroundColor: theme.colors.tertiaryContainer,
+                  backgroundColor: theme.colors.secondaryContainer,
                   marginTop: 4,
-                  width: 'auto',
                 }}
               >
                 Level {userLevel}
@@ -69,78 +88,167 @@ export const GameDashboard = observer(({ onNavigate }: { onNavigate: (screen: st
             </View>
           </View>
 
-          {/* Game Stats Row */}
+          {/* Stats Row */}
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
-              <Text variant="labelSmall" style={{ color: theme.colors.onPrimaryContainer, opacity: 0.7 }}>
+              <Text variant="labelSmall" style={{ opacity: 0.7 }}>
                 Score
               </Text>
-              <Text
-                variant="titleSmall"
-                style={{ color: theme.colors.onPrimaryContainer, fontWeight: 'bold' }}
-              >
+              <Text variant="titleMedium" style={{ fontWeight: '600' }}>
                 {userScore.toLocaleString()}
               </Text>
             </View>
             <View style={styles.divider} />
             <View style={styles.statItem}>
-              <Text variant="labelSmall" style={{ color: theme.colors.onPrimaryContainer, opacity: 0.7 }}>
+              <Text variant="labelSmall" style={{ opacity: 0.7 }}>
                 Streak
               </Text>
-              <Text
-                variant="titleSmall"
-                style={{ color: theme.colors.onPrimaryContainer, fontWeight: 'bold' }}
-              >
+              <Text variant="titleMedium" style={{ fontWeight: '600' }}>
                 7 days 🔥
               </Text>
             </View>
             <View style={styles.divider} />
             <View style={styles.statItem}>
-              <Text variant="labelSmall" style={{ color: theme.colors.onPrimaryContainer, opacity: 0.7 }}>
+              <Text variant="labelSmall" style={{ opacity: 0.7 }}>
                 Rank
               </Text>
-              <Text
-                variant="titleSmall"
-                style={{ color: theme.colors.onPrimaryContainer, fontWeight: 'bold' }}
-              >
-                #12
+              <Text variant="titleMedium" style={{ fontWeight: '600' }}>
+                #{dashboardData.leaderboardPosition || '--'}
               </Text>
             </View>
           </View>
 
           {/* XP Progress Bar */}
-          <View style={{ marginTop: 12 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-              <Text variant="labelSmall" style={{ color: theme.colors.onPrimaryContainer }}>
+          <View style={{ marginTop: 16 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+              <Text variant="labelSmall" style={{ opacity: 0.7 }}>
                 Level Progress
               </Text>
-              <Text variant="labelSmall" style={{ color: theme.colors.onPrimaryContainer }}>
-                250/500 XP
+              <Text variant="labelSmall" style={{ fontWeight: '600' }}>
+                {userScore % 500}/500 XP
               </Text>
             </View>
-            <ProgressBar progress={0.5} color={theme.colors.tertiary} />
+            <ProgressBar progress={(userScore % 500) / 500} color={theme.colors.primary} style={{ height: 8, borderRadius: 4 }} />
           </View>
+        </Card.Content>
+      </Card>
 
-          {/* Quick Account Actions */}
-          <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 12, gap: 8 }}>
+      {/* Quick Actions - Role Based */}
+      {userRole === 'TUTOR' ? (
+        <Card style={styles.card} mode="elevated" elevation={1}>
+          <Card.Content>
+            <Text variant="titleMedium" style={styles.sectionTitle}>Tutor Actions</Text>
+            <View style={styles.actionsGrid}>
+              <Button
+                mode="contained-tonal"
+                icon="school"
+                onPress={() => onNavigate('academyManagement')}
+                style={styles.actionButton}
+              >
+                My Academies
+              </Button>
+              <Button
+                mode="contained-tonal"
+                icon="account-group"
+                onPress={() => onNavigate('tutoring')}
+                style={styles.actionButton}
+              >
+                Students
+              </Button>
+            </View>
+          </Card.Content>
+        </Card>
+      ) : (
+        <Card style={styles.card} mode="elevated" elevation={1}>
+          <Card.Content>
+            <Text variant="titleMedium" style={styles.sectionTitle}>Quick Actions</Text>
+            <View style={styles.actionsGrid}>
+              <Button
+                mode="contained-tonal"
+                icon="store"
+                onPress={() => onNavigate('academyMarketplace')}
+                style={styles.actionButton}
+              >
+                Browse Courses
+              </Button>
+              <Button
+                mode="contained-tonal"
+                icon="book-education"
+                onPress={() => onNavigate('studentEnrollments')}
+                style={styles.actionButton}
+              >
+                My Enrollments
+              </Button>
+            </View>
+          </Card.Content>
+        </Card>
+      )}
+
+      {/* Notifications */}
+      {unreadCount > 0 && (
+        <Card style={styles.card} mode="elevated" elevation={1}>
+          <Card.Content>
+            <View style={styles.cardHeader}>
+              <MaterialCommunityIcons name="bell" size={24} color={theme.colors.primary} />
+              <Text variant="titleMedium" style={styles.cardTitle}>Notifications</Text>
+            </View>
+            <Text variant="bodyMedium" style={{ marginTop: 8 }}>
+              You have {unreadCount} unread notification{unreadCount !== 1 ? 's' : ''}
+            </Text>
+          </Card.Content>
+          <Card.Actions>
+            <Button mode="text" onPress={() => onNavigate('notifications')}>
+              View All
+            </Button>
+          </Card.Actions>
+        </Card>
+      )}
+
+      {/* Next Assignment */}
+      {nextAssignment && (
+        <Card style={styles.card} mode="elevated" elevation={1}>
+          <Card.Content>
+            <View style={styles.cardHeader}>
+              <MaterialCommunityIcons name="clipboard-text" size={24} color={theme.colors.primary} />
+              <Text variant="titleMedium" style={styles.cardTitle}>Next Assignment</Text>
+            </View>
+            <Text variant="titleSmall" style={{ marginTop: 8, fontWeight: '600' }}>
+              {nextAssignment.title}
+            </Text>
+            {nextAssignment.dueAt && (
+              <Text variant="bodySmall" style={{ marginTop: 4, opacity: 0.7 }}>
+                Due: {new Date(nextAssignment.dueAt).toLocaleDateString()}
+              </Text>
+            )}
+          </Card.Content>
+          <Card.Actions>
+            <Button mode="text" onPress={() => onNavigate('assignments')}>
+              View Details
+            </Button>
+          </Card.Actions>
+        </Card>
+      )}
+
+      {/* More Options */}
+      <Card style={styles.card} mode="elevated" elevation={1}>
+        <Card.Content>
+          <Text variant="titleMedium" style={styles.sectionTitle}>More</Text>
+          <View style={styles.menuList}>
             <Button
               mode="text"
-              icon="lock-reset"
-              compact
-              onPress={() => onNavigate('resetPassword')}
+              icon="trophy"
+              contentStyle={styles.menuItem}
+              onPress={() => onNavigate('leaderboard')}
             >
-              Reset Password
+              Leaderboard
             </Button>
             <Button
               mode="text"
-              icon="logout"
-              compact
-              onPress={async () => {
-                await authVM.logout();
-                onNavigate('dashboard');
-              }}
+              icon="folder-multiple"
+              contentStyle={styles.menuItem}
+              onPress={() => onNavigate('resources')}
             >
-              Logout
+              Resources
             </Button>
           </View>
         </Card.Content>
@@ -184,116 +292,6 @@ export const GameDashboard = observer(({ onNavigate }: { onNavigate: (screen: st
         </Card.Content>
       </Card>
 
-      {/* Friends Widget - Shows friend requests and recent friends */}
-      {user && (
-        <FriendsWidget
-          userId={user.id}
-          userRepo={authVM.userRepo}
-          onViewFriends={() => onNavigate('friends')}
-        />
-      )}
-
-      {/* Next Assignment Card */}
-      {nextAssignment && (
-        <Card style={[styles.featuredCard, { backgroundColor: theme.colors.secondaryContainer }]}>
-          <Card.Content>
-            <Text variant="labelSmall" style={{ color: theme.colors.onSecondaryContainer, opacity: 0.7 }}>
-              📌 UP NEXT
-            </Text>
-            <Text
-              variant="titleSmall"
-              numberOfLines={1}
-              style={{ color: theme.colors.onSecondaryContainer, marginTop: 4 }}
-            >
-              {nextAssignment.title}
-            </Text>
-            <Text
-              variant="bodySmall"
-              numberOfLines={1}
-              style={{ color: theme.colors.onSecondaryContainer, opacity: 0.8, marginTop: 4 }}
-            >
-              {nextAssignment.description}
-            </Text>
-            <Button
-              mode="contained"
-              compact
-              style={{ marginTop: 12 }}
-              onPress={() => onNavigate('assignments')}
-            >
-              Start
-            </Button>
-          </Card.Content>
-        </Card>
-      )}
-
-      {/* Menu Grid - Navigation Buttons */}
-      <Text variant="titleMedium" style={{ marginHorizontal: 16, marginTop: 8, marginBottom: 12 }}>
-        Choose Your Challenge
-      </Text>
-
-      <View style={styles.menuGrid}>
-        {/* Assignments Button */}
-        <MenuButton
-          icon="clipboard-list"
-          label="Assignments"
-          sublabel={`${dashboardData.scheduledAssignments.length} scheduled`}
-          color={theme.colors.primary}
-          backgroundColor={theme.colors.primaryContainer}
-          onPress={() => onNavigate('assignments')}
-        />
-
-        {/* Notifications Button */}
-        <MenuButton
-          icon="bell"
-          label="Notifications"
-          sublabel={`${unreadCount} unread`}
-          badge={unreadCount}
-          color={theme.colors.error}
-          backgroundColor={theme.colors.errorContainer}
-          onPress={() => onNavigate('notifications')}
-        />
-
-        {/* Leaderboard Button */}
-        <MenuButton
-          icon="trophy"
-          label="Leaderboard"
-          sublabel="See Rankings"
-          color={theme.colors.tertiary}
-          backgroundColor={theme.colors.tertiaryContainer}
-          onPress={() => onNavigate('leaderboard')}
-        />
-
-        {/* Resources Button */}
-        <MenuButton
-          icon="book-open-outline"
-          label="Resources"
-          sublabel="Learning Paths"
-          color={theme.colors.secondary}
-          backgroundColor={theme.colors.secondaryContainer}
-          onPress={() => onNavigate('resources')}
-        />
-
-        {/* Profile Button */}
-        <MenuButton
-          icon="account-circle"
-          label="Profile"
-          sublabel="My Account"
-          color={theme.colors.primary}
-          backgroundColor={theme.colors.primaryContainer}
-          onPress={() => onNavigate('profile')}
-        />
-
-        {/* Friends Button */}
-        <MenuButton
-          icon="account-multiple"
-          label="Friends"
-          sublabel="Connect & Compete"
-          color={theme.colors.tertiary}
-          backgroundColor={theme.colors.tertiaryContainer}
-          onPress={() => onNavigate('friends')}
-        />
-      </View>
-
       {/* Recent Achievements */}
       {dashboardData.recentAttempts.length > 0 && (
         <View style={{ paddingHorizontal: 16, marginTop: 16 }}>
@@ -329,7 +327,7 @@ export const GameDashboard = observer(({ onNavigate }: { onNavigate: (screen: st
 
       <View style={{ height: 40 }} />
     </ScrollView>
-    </ImageBackground>
+    </View>
   );
 });
 
@@ -389,27 +387,30 @@ const MenuButton = observer(
 );
 
 const styles = StyleSheet.create({
-  backgroundImage: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
-  },
   container: {
     flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
     padding: 16,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
   },
   profileCard: {
-    marginBottom: 16,
-    borderRadius: 20,
+    marginBottom: 12,
+    borderRadius: 12,
   },
   profileContent: {
-    paddingVertical: 16,
+    padding: 16,
   },
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.08)',
   },
   statItem: {
     alignItems: 'center',
@@ -417,54 +418,37 @@ const styles = StyleSheet.create({
   },
   divider: {
     width: 1,
-    height: 30,
-    backgroundColor: 'rgba(0,0,0,0.1)',
+    height: 32,
+    backgroundColor: 'rgba(0,0,0,0.08)',
     marginHorizontal: 8,
   },
-  featuredCard: {
-    marginBottom: 16,
-    borderRadius: 16,
+  card: {
+    marginBottom: 12,
+    borderRadius: 12,
   },
-  locationCard: {
-    marginBottom: 16,
-    borderRadius: 16,
-  },
-  locationContent: {
-    paddingVertical: 12,
-  },
-  menuGrid: {
+  cardHeader: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    alignItems: 'center',
     gap: 12,
-    paddingHorizontal: 16,
-    justifyContent: 'space-between',
   },
-  menuButton: {
-    width: '48%',
-    borderRadius: 16,
+  cardTitle: {
+    fontWeight: '600',
+  },
+  sectionTitle: {
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  actionsGrid: {
+    gap: 8,
+  },
+  actionButton: {
     marginBottom: 4,
   },
-  menuButtonContent: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 20,
+  menuList: {
+    gap: 4,
   },
-  iconContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  badgeCircle: {
-    position: 'absolute',
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    right: 0,
-    top: 0,
+  menuItem: {
+    justifyContent: 'flex-start',
   },
   achievementItem: {
     flexDirection: 'row',
