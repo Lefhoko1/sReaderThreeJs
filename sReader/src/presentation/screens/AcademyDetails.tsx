@@ -15,7 +15,7 @@ import {
   FlatList,
   Dimensions,
 } from 'react-native';
-import { Text, Card, Chip, Button, Avatar, Divider } from 'react-native-paper';
+import { Text, Card, Chip, Button, Avatar, Divider, useTheme } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { observer } from 'mobx-react-lite';
@@ -35,6 +35,7 @@ interface AcademyDetailsProps {
 
 export const AcademyDetails: React.FC<AcademyDetailsProps> = observer(
   ({ viewModel, academy, studentId, onBack, onBrowseLevels, onLevelSelect, onRequestEnrollment }) => {
+    const theme = useTheme();
     const [index, setIndex] = useState(0);
     const [routes] = useState([
       { key: 'overview', title: 'Overview' },
@@ -63,7 +64,6 @@ export const AcademyDetails: React.FC<AcademyDetailsProps> = observer(
       }
     };
 
-    // Get real levels from viewModel for this academy
     const displayedLevels = viewModel.levels.filter((l) => l.academyId === academy.id);
 
     const handleEnrollmentRequest = () => {
@@ -79,222 +79,220 @@ export const AcademyDetails: React.FC<AcademyDetailsProps> = observer(
       ]);
     };
 
-    const renderOverviewTab = () => (
-      <View style={styles.tabContent}>
-        {/* Description Card */}
-        <Card style={styles.sectionCard}>
-          <Card.Content>
-            <Text style={styles.sectionTitle}>About Academy</Text>
-            <Text style={styles.descriptionText}>{academy.description || 'Premium tutoring academy'}</Text>
+    function renderHeader() {
+      return (
+        <View>
+          {/* Header */}
+          <View style={[styles.header, { backgroundColor: theme.colors.primary }]}>
+            <TouchableOpacity onPress={onBack} style={styles.backButton}>
+              <MaterialCommunityIcons name="chevron-left" size={28} color="#fff" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle} numberOfLines={1}>
+              {academy.name}
+            </Text>
+            <MaterialCommunityIcons name="heart-outline" size={28} color="#fff" />
+          </View>
 
-            <Divider style={styles.divider} />
-
-            <View style={styles.infoRow}>
-              <MaterialCommunityIcons name="map-marker" size={20} color="#7C6FD3" />
-              <Text style={styles.infoText}>{academy.location || 'Online & In-person'}</Text>
+          {/* Hero Section */}
+          <LinearGradient
+            colors={[theme.colors.primaryContainer, theme.colors.secondaryContainer]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.heroSection}
+          >
+            <View style={styles.heroContent}>
+              <Avatar.Text size={100} label={academy.name.substring(0, 2)} />
+              <View style={styles.heroInfo}>
+                {academy.isVerified && (
+                  <View style={styles.verificationBadge}>
+                    <MaterialCommunityIcons name="check-circle" size={18} color="#4CAF50" />
+                    <Text style={styles.verificationText}>Verified Academy</Text>
+                  </View>
+                )}
+                <View style={styles.ratingRow}>
+                  <MaterialCommunityIcons name="star" size={20} color="#FFD700" />
+                  <Text style={styles.ratingText}>{`4.8/5.0 (324 reviews)`}</Text>
+                </View>
+              </View>
             </View>
+          </LinearGradient>
 
-            {academy.phone && (
-              <View style={styles.infoRow}>
-                <MaterialCommunityIcons name="phone" size={20} color="#7C6FD3" />
-                <Text style={styles.infoText}>{academy.phone}</Text>
-              </View>
-            )}
-
-            {academy.email && (
-              <View style={styles.infoRow}>
-                <MaterialCommunityIcons name="email" size={20} color="#7C6FD3" />
-                <Text style={styles.infoText}>{academy.email}</Text>
-              </View>
-            )}
-
-            {academy.websiteUrl && (
-              <View style={styles.infoRow}>
-                <MaterialCommunityIcons name="web" size={20} color="#7C6FD3" />
-                <Text style={styles.infoText}>{academy.websiteUrl}</Text>
-              </View>
-            )}
-
-            <Divider style={styles.divider} />
-
-            {/* Browse Levels & Subjects Button */}
+          {/* Browse Subjects Button - Prominent CTA */}
+          <View style={[styles.browseButtonContainer, { backgroundColor: theme.colors.surfaceVariant }]}>
             <Button
               mode="contained"
-              style={styles.exploreLevelsButton}
-              labelStyle={styles.exploreLevelsButtonLabel}
+              style={styles.browseSubjectsButton}
+              labelStyle={styles.browseSubjectsButtonLabel}
               onPress={async () => {
-                console.log('[AcademyDetails.Overview] Explore Levels button pressed');
-                // Switch to Levels tab
+                console.log('[AcademyDetails] Browse Subjects button pressed for academy:', academy.id);
                 setIndex(1);
-                // Reload levels to ensure fresh data
                 await loadLevels();
               }}
             >
-              Explore Levels & Subjects
+              Browse Subjects & Levels
             </Button>
-          </Card.Content>
-        </Card>
-
-        {/* Stats Card */}
-        <Card style={styles.sectionCard}>
-          <Card.Content>
-            <Text style={styles.sectionTitle}>Academy Stats</Text>
-            <View style={styles.statsGrid}>
-              <StatItem icon="account-multiple" label="Students" value="2,450" />
-              <StatItem icon="teach" label="Tutors" value="85" />
-              <StatItem icon="book-open" label="Subjects" value="42" />
-              <StatItem icon="school" label="Levels" value="8" />
-            </View>
-          </Card.Content>
-        </Card>
-
-        {/* Highlights */}
-        <Card style={styles.sectionCard}>
-          <Card.Content>
-            <Text style={styles.sectionTitle}>Why Choose Us?</Text>
-            <View style={styles.highlightList}>
-              <HighlightItem text="Expert, verified tutors" icon="check-circle" />
-              <HighlightItem text="Flexible scheduling" icon="clock" />
-              <HighlightItem text="Affordable pricing" icon="tag" />
-              <HighlightItem text="Online & in-person classes" icon="laptop" />
-              <HighlightItem text="Personalized learning paths" icon="target" />
-              <HighlightItem text="24/7 student support" icon="headset" />
-            </View>
-          </Card.Content>
-        </Card>
-      </View>
-    );
-
-    const renderLevelsTab = () => (
-      <View style={styles.tabContent}>
-        {loading ? (
-          <View style={styles.centerContainer}>
-            <ActivityIndicator animating={true} color="#7C6FD3" size="large" />
-            <Text style={styles.loadingText}>Loading levels...</Text>
           </View>
-        ) : displayedLevels.length === 0 ? (
-          <View style={styles.centerContainer}>
-            <MaterialCommunityIcons name="school" size={48} color="#ccc" />
-            <Text style={styles.emptyText}>No levels available</Text>
-            <Text style={styles.emptySubtext}>Check back later</Text>
-          </View>
-        ) : (
-          displayedLevels.map((level) => (
-            <Card key={level.id} style={styles.levelCard}>
-              <Card.Content>
-                <View style={styles.levelHeader}>
-                  <View>
-                    <Text style={styles.levelName}>{level.name}</Text>
-                    <Text style={styles.levelCode}>{level.code}</Text>
-                  </View>
-                  <View style={styles.levelBadge}>
-                    <Text style={styles.levelBadgeText}>{viewModel.subjects.filter(s => s.levelId === level.id).length} subjects</Text>
-                  </View>
-                </View>
-                <Text style={styles.levelDescription}>{level.description}</Text>
-                <Button
-                  mode="outlined"
-                  style={styles.levelButton}
-                  labelStyle={styles.levelButtonLabel}
-                  onPress={() => {
-                    console.log('[AcademyDetails] View Subjects pressed for level:', level.id);
-                    onLevelSelect?.(level);
-                  }}
+
+          {/* Tab Navigation */}
+          <View style={[styles.tabBar, { backgroundColor: theme.colors.surfaceVariant }]}>
+            {routes.map((route, i) => (
+              <TouchableOpacity
+                key={route.key}
+                style={[styles.tabButton, index === i && styles.tabButtonActive]}
+                onPress={() => setIndex(i)}
+              >
+                <Text
+                  style={[
+                    styles.tabLabel,
+                    index === i && styles.tabLabelActive,
+                  ]}
                 >
-                  View Subjects
-                </Button>
-              </Card.Content>
-            </Card>
-          ))
-        )}
-      </View>
-    );
+                  {route.title}
+                </Text>
+                {index === i && <View style={styles.tabIndicator} />}
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Overview Tab Content */}
+          {index === 0 && (
+            <View style={styles.tabContent}>
+              {/* Description Card */}
+              <Card style={styles.sectionCard}>
+                <Card.Content>
+                  <Text style={styles.sectionTitle}>About Academy</Text>
+                  <Text style={styles.descriptionText}>{academy.description || 'Premium tutoring academy'}</Text>
+
+                  <Divider style={styles.divider} />
+
+                  <View style={styles.infoRow}>
+                    <MaterialCommunityIcons name="map-marker" size={20} color={theme.colors.primary} />
+                    <Text style={styles.infoText}>{academy.location || 'Online & In-person'}</Text>
+                  </View>
+
+                  {academy.phone && (
+                    <View style={styles.infoRow}>
+                      <MaterialCommunityIcons name="phone" size={20} color={theme.colors.primary} />
+                      <Text style={styles.infoText}>{academy.phone}</Text>
+                    </View>
+                  )}
+
+                  {academy.email && (
+                    <View style={styles.infoRow}>
+                      <MaterialCommunityIcons name="email" size={20} color={theme.colors.primary} />
+                      <Text style={styles.infoText}>{academy.email}</Text>
+                    </View>
+                  )}
+
+                  {academy.websiteUrl && (
+                    <View style={styles.infoRow}>
+                      <MaterialCommunityIcons name="web" size={20} color={theme.colors.primary} />
+                      <Text style={styles.infoText}>{academy.websiteUrl}</Text>
+                    </View>
+                  )}
+
+                  <Divider style={styles.divider} />
+
+                  <Button
+                    mode="contained"
+                    style={styles.exploreLevelsButton}
+                    labelStyle={styles.exploreLevelsButtonLabel}
+                    onPress={async () => {
+                      console.log('[AcademyDetails.Overview] Explore Levels button pressed');
+                      setIndex(1);
+                      await loadLevels();
+                    }}
+                  >
+                    Explore Levels & Subjects
+                  </Button>
+                </Card.Content>
+              </Card>
+
+              {/* Stats Card */}
+              <Card style={styles.sectionCard}>
+                <Card.Content>
+                  <Text style={styles.sectionTitle}>Academy Stats</Text>
+                  <View style={styles.statsGrid}>
+                    <StatItem icon="account-multiple" label="Students" value="2,450" />
+                    <StatItem icon="teach" label="Tutors" value="85" />
+                    <StatItem icon="book-open" label="Subjects" value="42" />
+                    <StatItem icon="school" label="Levels" value="8" />
+                  </View>
+                </Card.Content>
+              </Card>
+
+              {/* Highlights */}
+              <Card style={styles.sectionCard}>
+                <Card.Content>
+                  <Text style={styles.sectionTitle}>Why Choose Us?</Text>
+                  <View style={styles.highlightList}>
+                    <HighlightItem text="Expert, verified tutors" icon="check-circle" />
+                    <HighlightItem text="Flexible scheduling" icon="clock" />
+                    <HighlightItem text="Affordable pricing" icon="tag" />
+                    <HighlightItem text="Online & in-person classes" icon="laptop" />
+                    <HighlightItem text="Personalized learning paths" icon="target" />
+                    <HighlightItem text="24/7 student support" icon="headset" />
+                  </View>
+                </Card.Content>
+              </Card>
+            </View>
+          )}
+        </View>
+      );
+    }
 
     return (
       <SafeAreaView style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={onBack} style={styles.backButton}>
-            <MaterialCommunityIcons name="chevron-left" size={28} color="#fff" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle} numberOfLines={1}>
-            {academy.name}
-          </Text>
-          <MaterialCommunityIcons name="heart-outline" size={28} color="#fff" />
-        </View>
-
-        {/* Hero Section */}
-        <LinearGradient
-          colors={['#7C6FD3', '#5A50A3']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.heroSection}
-        >
-          <View style={styles.heroContent}>
-            <Avatar.Text size={100} label={academy.name.substring(0, 2)} />
-            <View style={styles.heroInfo}>
-              {academy.isVerified && (
-                <View style={styles.verificationBadge}>
-                  <MaterialCommunityIcons name="check-circle" size={18} color="#4CAF50" />
-                  <Text style={styles.verificationText}>Verified Academy</Text>
-                </View>
-              )}
-              <View style={styles.ratingRow}>
-                <MaterialCommunityIcons name="star" size={20} color="#FFD700" />
-                <Text style={styles.ratingText}>4.8/5.0 (324 reviews)</Text>
-              </View>
+        <FlatList
+          ListHeaderComponent={renderHeader}
+          data={index === 0 ? [] : displayedLevels}
+          keyExtractor={(item, i) => item?.id || `level-${i}`}
+          renderItem={({ item }) => {
+            if (!item) return null;
+            return (
+              <Card key={item.id} style={styles.levelCard}>
+                <Card.Content>
+                  <View style={styles.levelHeader}>
+                    <View>
+                      <Text style={styles.levelName}>{item.name}</Text>
+                      <Text style={styles.levelCode}>{item.code}</Text>
+                    </View>
+                    <View style={styles.levelBadge}>
+                      <Text style={styles.levelBadgeText}>{viewModel.subjects.filter(s => s.levelId === item.id).length} subjects</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.levelDescription}>{item.description}</Text>
+                  <Button
+                    mode="outlined"
+                    style={styles.levelButton}
+                    labelStyle={styles.levelButtonLabel}
+                    onPress={() => {
+                      console.log('[AcademyDetails] View Subjects pressed for level:', item.id);
+                      onLevelSelect?.(item);
+                    }}
+                  >
+                    View Subjects
+                  </Button>
+                </Card.Content>
+              </Card>
+            );
+          }}
+          ListEmptyComponent={index === 0 ? null : (loading ? (
+            <View style={styles.centerContainer}>
+              <ActivityIndicator animating={true} color={theme.colors.primary} size="large" />
+              <Text style={styles.loadingText}>Loading levels...</Text>
             </View>
-          </View>
-        </LinearGradient>
-
-        {/* Browse Subjects Button - Prominent CTA */}
-        <View style={styles.browseButtonContainer}>
-          <Button
-            mode="contained"
-            style={styles.browseSubjectsButton}
-            labelStyle={styles.browseSubjectsButtonLabel}
-            onPress={async () => {
-              console.log('[AcademyDetails] Browse Subjects button pressed for academy:', academy.id);
-              // Switch to Levels tab
-              setIndex(1);
-              // Reload levels to ensure fresh data
-              await loadLevels();
-            }}
-          >
-            Browse Subjects & Levels
-          </Button>
-        </View>
-
-        {/* Tab Navigation */}
-        <View style={styles.tabBar}>
-          {routes.map((route, i) => (
-            <TouchableOpacity
-              key={route.key}
-              style={[styles.tabButton, index === i && styles.tabButtonActive]}
-              onPress={() => setIndex(i)}
-            >
-              <Text
-                style={[
-                  styles.tabLabel,
-                  index === i && styles.tabLabelActive,
-                ]}
-              >
-                {route.title}
-              </Text>
-              {index === i && <View style={styles.tabIndicator} />}
-            </TouchableOpacity>
+          ) : (
+            <View style={styles.centerContainer}>
+              <MaterialCommunityIcons name="school" size={48} color="#ccc" />
+              <Text style={styles.emptyText}>No levels available</Text>
+              <Text style={styles.emptySubtext}>Check back later</Text>
+            </View>
           ))}
-        </View>
-
-        {/* Tab Content */}
-        <ScrollView 
-          style={styles.tabContentContainer}
+          contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.tabContentInner}
-        >
-          {index === 0 && renderOverviewTab()}
-          {index === 1 && renderLevelsTab()}
-        </ScrollView>
+          style={{ backgroundColor: theme.colors.surfaceVariant }}
+        />
       </SafeAreaView>
     );
   }
@@ -335,7 +333,7 @@ const { width } = Dimensions.get('window');
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fc',
+    backgroundColor: '#FFFBFE',
   },
 
   // Header
@@ -396,21 +394,21 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     fontSize: 13,
-    color: '#fff',
+    color: '#1C1B1F',
     marginLeft: 6,
     fontWeight: '600',
   },
 
   // Browse Button
   browseButtonContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: '#E7E0EC',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: 'rgba(0, 0, 0, 0.06)',
   },
   browseSubjectsButton: {
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#6750A4',
     borderRadius: 8,
   },
   browseSubjectsButtonLabel: {
@@ -421,11 +419,11 @@ const styles = StyleSheet.create({
 
   // Tabs
   tabBar: {
-    backgroundColor: '#fff',
+    backgroundColor: '#E7E0EC',
     elevation: 2,
     flexDirection: 'row',
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: 'rgba(0, 0, 0, 0.06)',
   },
   tabButton: {
     flex: 1,
@@ -435,10 +433,10 @@ const styles = StyleSheet.create({
   },
   tabButtonActive: {
     borderBottomWidth: 3,
-    borderBottomColor: '#7C6FD3',
+    borderBottomColor: '#6750A4',
   },
   tabIndicator: {
-    backgroundColor: '#7C6FD3',
+    backgroundColor: '#6750A4',
     height: 3,
     marginTop: 8,
     width: '100%',
@@ -447,10 +445,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     textTransform: 'capitalize',
-    color: '#999',
+    color: '#79747E',
   },
   tabLabelActive: {
-    color: '#7C6FD3',
+    color: '#6750A4',
     fontWeight: '700',
   },
   tabContentContainer: {
@@ -461,9 +459,13 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   tabContent: {
-    flex: 1,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 16,
+  },
+  listContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    paddingBottom: 40,
   },
   centerContainer: {
     flex: 1,
@@ -473,38 +475,39 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    color: '#7C6FD3',
+    color: '#6750A4',
     marginTop: 12,
     fontWeight: '600',
   },
   emptyText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#333',
+    color: '#1C1B1F',
     marginTop: 12,
   },
   emptySubtext: {
     fontSize: 12,
-    color: '#999',
+    color: '#79747E',
     marginTop: 6,
   },
 
   // Cards
   sectionCard: {
-    marginBottom: 12,
+    marginBottom: 16,
     borderRadius: 12,
+    elevation: 2,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#333',
-    marginBottom: 12,
+    color: '#1C1B1F',
+    marginBottom: 16,
   },
   descriptionText: {
     fontSize: 13,
-    color: '#666',
+    color: '#1C1B1F',
     lineHeight: 20,
-    marginBottom: 12,
+    marginBottom: 16,
   },
   divider: {
     marginVertical: 12,
@@ -516,7 +519,7 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 13,
-    color: '#666',
+    color: '#1C1B1F',
     marginLeft: 12,
     flex: 1,
   },
@@ -535,12 +538,12 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#333',
+    color: '#1C1B1F',
     marginTop: 6,
   },
   statLabel: {
     fontSize: 12,
-    color: '#999',
+    color: '#79747E',
     marginTop: 4,
   },
 
@@ -554,15 +557,16 @@ const styles = StyleSheet.create({
   },
   highlightText: {
     fontSize: 13,
-    color: '#666',
+    color: '#1C1B1F',
     marginLeft: 12,
     flex: 1,
   },
 
   // Levels
   levelCard: {
-    marginBottom: 12,
+    marginBottom: 16,
     borderRadius: 12,
+    elevation: 2,
   },
   levelHeader: {
     flexDirection: 'row',
@@ -573,15 +577,15 @@ const styles = StyleSheet.create({
   levelName: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#333',
+    color: '#1C1B1F',
   },
   levelCode: {
     fontSize: 12,
-    color: '#999',
+    color: '#79747E',
     marginTop: 2,
   },
   levelBadge: {
-    backgroundColor: '#E3F2FD',
+    backgroundColor: '#E8DEF8',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
@@ -589,22 +593,22 @@ const styles = StyleSheet.create({
   levelBadgeText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#1976D2',
+    color: '#625B71',
   },
   levelDescription: {
     fontSize: 12,
-    color: '#666',
+    color: '#1C1B1F',
     marginBottom: 12,
   },
   levelButton: {
-    borderColor: '#7C6FD3',
+    borderColor: '#6750A4',
   },
   levelButtonLabel: {
     fontSize: 12,
   },
   exploreLevelsButton: {
     marginTop: 12,
-    backgroundColor: '#7C6FD3',
+    backgroundColor: '#6750A4',
     borderRadius: 8,
   },
   exploreLevelsButtonLabel: {
@@ -632,11 +636,11 @@ const styles = StyleSheet.create({
   tutorName: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#333',
+    color: '#1C1B1F',
   },
   tutorSpecialization: {
     fontSize: 12,
-    color: '#7C6FD3',
+    color: '#6750A4',
     marginTop: 2,
     fontWeight: '600',
   },
@@ -647,12 +651,12 @@ const styles = StyleSheet.create({
   },
   tutorStat: {
     fontSize: 11,
-    color: '#666',
+    color: '#1C1B1F',
     marginRight: 12,
     marginTop: 4,
   },
   viewTutorButton: {
-    borderColor: '#7C6FD3',
+    borderColor: '#6750A4',
   },
   viewTutorButtonLabel: {
     fontSize: 12,
@@ -666,10 +670,10 @@ const styles = StyleSheet.create({
   },
   pricingCardHighlight: {
     borderWidth: 2,
-    borderColor: '#7C6FD3',
+    borderColor: '#625B71',
   },
   bestValueBadge: {
-    backgroundColor: '#7C6FD3',
+    backgroundColor: '#625B71',
     paddingVertical: 6,
     alignItems: 'center',
   },
@@ -681,12 +685,12 @@ const styles = StyleSheet.create({
   planName: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#333',
+    color: '#1C1B1F',
     marginBottom: 4,
   },
   planDescription: {
     fontSize: 12,
-    color: '#999',
+    color: '#79747E',
     marginBottom: 12,
   },
   priceSection: {
@@ -697,11 +701,11 @@ const styles = StyleSheet.create({
   price: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#7C6FD3',
+    color: '#6750A4',
   },
   period: {
     fontSize: 12,
-    color: '#999',
+    color: '#79747E',
     marginLeft: 4,
   },
   pricingDivider: {
@@ -714,13 +718,13 @@ const styles = StyleSheet.create({
   },
   featureText: {
     fontSize: 12,
-    color: '#666',
+    color: '#1C1B1F',
     marginLeft: 10,
     flex: 1,
   },
   enrollButton: {
     marginTop: 8,
-    backgroundColor: '#7C6FD3',
+    backgroundColor: '#6750A4',
   },
   enrollButtonLabel: {
     fontSize: 13,

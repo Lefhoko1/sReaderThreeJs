@@ -17,7 +17,7 @@ import {
   ImageBackground,
   SafeAreaView,
 } from 'react-native';
-import { Text, Card, Chip, Button, Icon, Avatar, Badge, Searchbar } from 'react-native-paper';
+import { Text, Card, Chip, Button, Icon, Avatar, Badge, Searchbar, useTheme } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
 import { observer } from 'mobx-react-lite';
 import { TutoringViewModel } from '../../application/viewmodels/TutoringViewModel';
@@ -36,6 +36,7 @@ type SortType = 'name' | 'rating' | 'students';
 
 export const AcademyMarketplace: React.FC<AcademyMarketplaceProps> = observer(
   ({ viewModel, studentId, onAcademySelect, onBack }) => {
+    const theme = useTheme();
     const [searchQuery, setSearchQuery] = useState('');
     const [filterType, setFilterType] = useState<FilterType>('all');
     const [sortType, setSortType] = useState<SortType>('rating');
@@ -103,13 +104,14 @@ export const AcademyMarketplace: React.FC<AcademyMarketplaceProps> = observer(
         academy={item}
         onPress={() => onAcademySelect(item)}
         isVerified={item.isVerified}
+        theme={theme}
       />
     );
 
-    return (
-      <SafeAreaView style={styles.container}>
+    const renderHeader = () => (
+      <>
         {/* Header Section */}
-        <View style={styles.headerSection}>
+        <View style={[styles.headerSection, { backgroundColor: theme.colors.primary }]}>
           <View style={styles.headerTop}>
             <TouchableOpacity onPress={onBack} style={styles.backButton}>
               <Icon source="chevron-left" size={28} color="#fff" />
@@ -117,31 +119,30 @@ export const AcademyMarketplace: React.FC<AcademyMarketplaceProps> = observer(
             <Text style={styles.headerTitle}>Discover Academies</Text>
             <View style={{ width: 32 }} />
           </View>
-
           <Text style={styles.headerSubtitle}>Find the perfect academy for your learning journey</Text>
         </View>
 
         {/* Search Bar */}
-        <View style={styles.searchSection}>
+        <View style={[styles.searchSection, { backgroundColor: theme.colors.surfaceVariant }]}>
           <Searchbar
             placeholder="Search academies..."
             onChangeText={handleSearch}
             value={searchQuery}
             style={styles.searchBar}
-            iconColor="#7C6FD3"
+            iconColor={theme.colors.primary}
             placeholderTextColor="#999"
             inputStyle={styles.searchInput}
           />
         </View>
 
-        {/* Filter and Sort Controls */}
-        <View style={styles.controlsSection}>
+        {/* Filter Controls */}
+        <View style={[styles.controlsSection, { backgroundColor: theme.colors.surfaceVariant }]}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
             <Chip
               selected={filterType === 'all'}
               onPress={() => setFilterType('all')}
               style={[styles.chip, filterType === 'all' && styles.chipSelected]}
-              textStyle={{ fontSize: 12 }}
+              textStyle={{ fontSize: 12, color: filterType === 'all' ? '#000' : '#666' }}
             >
               All
             </Chip>
@@ -149,7 +150,7 @@ export const AcademyMarketplace: React.FC<AcademyMarketplaceProps> = observer(
               selected={filterType === 'verified'}
               onPress={() => setFilterType('verified')}
               style={[styles.chip, filterType === 'verified' && styles.chipSelected]}
-              textStyle={{ fontSize: 12 }}
+              textStyle={{ fontSize: 12, color: filterType === 'verified' ? '#000' : '#666' }}
             >
               ✓ Verified
             </Chip>
@@ -157,7 +158,7 @@ export const AcademyMarketplace: React.FC<AcademyMarketplaceProps> = observer(
               selected={filterType === 'topRated'}
               onPress={() => setFilterType('topRated')}
               style={[styles.chip, filterType === 'topRated' && styles.chipSelected]}
-              textStyle={{ fontSize: 12 }}
+              textStyle={{ fontSize: 12, color: filterType === 'topRated' ? '#000' : '#666' }}
             >
               ⭐ Top Rated
             </Chip>
@@ -165,7 +166,7 @@ export const AcademyMarketplace: React.FC<AcademyMarketplaceProps> = observer(
               selected={filterType === 'new'}
               onPress={() => setFilterType('new')}
               style={[styles.chip, filterType === 'new' && styles.chipSelected]}
-              textStyle={{ fontSize: 12 }}
+              textStyle={{ fontSize: 12, color: filterType === 'new' ? '#000' : '#666' }}
             >
               🆕 New
             </Chip>
@@ -173,56 +174,76 @@ export const AcademyMarketplace: React.FC<AcademyMarketplaceProps> = observer(
         </View>
 
         {/* Sort Controls */}
-        <View style={styles.sortSection}>
-          <Text style={styles.sortLabel}>Sort by:</Text>
+        <View style={[styles.sortSection, { backgroundColor: theme.colors.surfaceVariant }]}>
+          <Text style={[styles.sortLabel, { color: theme.colors.onSurfaceVariant }]}>Sort by:</Text>
           <View style={styles.sortButtons}>
             <TouchableOpacity
               onPress={() => setSortType('rating')}
-              style={[styles.sortButton, sortType === 'rating' && styles.sortButtonActive]}
+              style={[
+                styles.sortButton,
+                { borderColor: '#ddd' },
+                sortType === 'rating' && { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary },
+              ]}
             >
-              <Text style={[styles.sortButtonText, sortType === 'rating' && styles.sortButtonTextActive]}>
+              <Text style={[styles.sortButtonText, sortType === 'rating' && { color: '#fff' }]}>
                 Rating
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => setSortType('name')}
-              style={[styles.sortButton, sortType === 'name' && styles.sortButtonActive]}
+              style={[
+                styles.sortButton,
+                { borderColor: '#ddd' },
+                sortType === 'name' && { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary },
+              ]}
             >
-              <Text style={[styles.sortButtonText, sortType === 'name' && styles.sortButtonTextActive]}>
+              <Text style={[styles.sortButtonText, sortType === 'name' && { color: '#fff' }]}>
                 A-Z
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => setSortType('students')}
-              style={[styles.sortButton, sortType === 'students' && styles.sortButtonActive]}
+              style={[
+                styles.sortButton,
+                { borderColor: '#ddd' },
+                sortType === 'students' && { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary },
+              ]}
             >
-              <Text style={[styles.sortButtonText, sortType === 'students' && styles.sortButtonTextActive]}>
+              <Text style={[styles.sortButtonText, sortType === 'students' && { color: '#fff' }]}>
                 Popular
               </Text>
             </TouchableOpacity>
           </View>
         </View>
+      </>
+    );
 
-        {/* Academy List */}
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.surfaceVariant }]}>
         {viewModel.loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#7C6FD3" />
+            <ActivityIndicator size="large" color={theme.colors.primary} />
             <Text style={styles.loadingText}>Loading academies...</Text>
           </View>
         ) : filteredAcademies.length > 0 ? (
           <FlatList
+            ListHeaderComponent={renderHeader}
             data={filteredAcademies}
             renderItem={renderAcademyCard}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.listContent}
-            scrollEnabled={false}
+            scrollEnabled={true}
+            showsVerticalScrollIndicator={false}
           />
         ) : (
-          <View style={styles.emptyContainer}>
-            <Icon source="folder-open" size={80} color="#ddd" />
-            <Text style={styles.emptyTitle}>No academies found</Text>
-            <Text style={styles.emptyText}>Try adjusting your search or filters</Text>
-          </View>
+          <>
+            {renderHeader()}
+            <View style={styles.emptyContainer}>
+              <Icon source="folder-open" size={80} color="#ddd" />
+              <Text style={styles.emptyTitle}>No academies found</Text>
+              <Text style={styles.emptyText}>Try adjusting your search or filters</Text>
+            </View>
+          </>
         )}
 
         {viewModel.error && (
@@ -244,9 +265,10 @@ interface AcademyCardProps {
   academy: TutoringAcademy;
   onPress: () => void;
   isVerified?: boolean;
+  theme: any;
 }
 
-const AcademyCard: React.FC<AcademyCardProps> = ({ academy, onPress, isVerified }) => {
+const AcademyCard: React.FC<AcademyCardProps> = ({ academy, onPress, isVerified, theme }) => {
   // Mock data for preview
   const staffCount = Math.floor(Math.random() * 20) + 5;
   const studentCount = Math.floor(Math.random() * 500) + 50;
@@ -256,7 +278,7 @@ const AcademyCard: React.FC<AcademyCardProps> = ({ academy, onPress, isVerified 
     <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
       <Card style={styles.academyCard}>
         <LinearGradient
-          colors={['#7C6FD3', '#5A50A3']}
+          colors={[theme.colors.primaryContainer, theme.colors.secondaryContainer]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.cardGradient}
@@ -322,11 +344,11 @@ const AcademyCard: React.FC<AcademyCardProps> = ({ academy, onPress, isVerified 
         </LinearGradient>
 
         {/* Footer Action */}
-        <View style={styles.cardFooter}>
+        <View style={[styles.cardFooter, { backgroundColor: theme.colors.surface }]}>
           <Button
             mode="contained"
             onPress={onPress}
-            style={styles.viewButton}
+            style={[styles.viewButton, { backgroundColor: theme.colors.primary }]}
             labelStyle={styles.viewButtonLabel}
           >
             View Details
@@ -342,12 +364,9 @@ const { width } = Dimensions.get('window');
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fc',
   },
 
-  // Header
   headerSection: {
-    backgroundColor: '#7C6FD3',
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 20,
@@ -382,7 +401,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 8,
-    backgroundColor: '#f8f9fc',
   },
   searchBar: {
     backgroundColor: '#fff',
@@ -401,7 +419,8 @@ const styles = StyleSheet.create({
   controlsSection: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#f8f9fc',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0, 0, 0, 0.06)',
   },
   filterScroll: {
     flexDirection: 'row',
@@ -413,15 +432,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   chipSelected: {
-    backgroundColor: '#7C6FD3',
-    borderColor: '#7C6FD3',
+    backgroundColor: '#6750A4',
+    borderColor: '#6750A4',
   },
 
   // Sort
   sortSection: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#f8f9fc',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0, 0, 0, 0.06)',
   },
   sortLabel: {
     fontSize: 12,
@@ -444,8 +464,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sortButtonActive: {
-    backgroundColor: '#7C6FD3',
-    borderColor: '#7C6FD3',
+    backgroundColor: '#6750A4',
+    borderColor: '#6750A4',
   },
   sortButtonText: {
     fontSize: 12,
@@ -537,7 +557,7 @@ const styles = StyleSheet.create({
   academyName: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#fff',
+    color: '#1C1B1F',
     marginBottom: 4,
   },
   verifiedBadge: {
@@ -552,17 +572,17 @@ const styles = StyleSheet.create({
   verifiedText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#fff',
+    color: '#1C1B1F',
     marginLeft: 4,
   },
   academyLocation: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: '#1C1B1F',
     marginBottom: 8,
   },
   academyDescription: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.85)',
+    color: '#1C1B1F',
     marginBottom: 12,
   },
 
@@ -583,7 +603,7 @@ const styles = StyleSheet.create({
   },
   statText: {
     fontSize: 11,
-    color: '#fff',
+    color: '#1C1B1F',
     marginLeft: 4,
     fontWeight: '600',
   },
@@ -601,7 +621,7 @@ const styles = StyleSheet.create({
   staffLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: '#1C1B1F',
     marginBottom: 8,
   },
   staffAvatars: {
@@ -610,12 +630,12 @@ const styles = StyleSheet.create({
   },
   staffAvatar: {
     borderWidth: 2,
-    borderColor: '#7C6FD3',
+    borderColor: '#EADDFF',
   },
   moreStaff: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#fff',
+    color: '#1C1B1F',
     marginLeft: 8,
   },
 
@@ -623,10 +643,8 @@ const styles = StyleSheet.create({
   cardFooter: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#fff',
   },
   viewButton: {
-    backgroundColor: '#7C6FD3',
     borderRadius: 8,
   },
   viewButtonLabel: {

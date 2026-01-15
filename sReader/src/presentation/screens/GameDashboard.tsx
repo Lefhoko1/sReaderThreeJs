@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
-import { Card, Text, Button, useTheme, Avatar, ProgressBar, Chip, Appbar, IconButton } from 'react-native-paper';
+import { Card, Text, Button, useTheme, Avatar, ProgressBar, Chip } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { observer } from 'mobx-react-lite';
 import { useAppContext } from '../context/AppContext';
@@ -32,27 +32,6 @@ export const GameDashboard = observer(({ onNavigate }: { onNavigate: (screen: st
 
   return (
     <View style={styles.container}>
-      <Appbar.Header style={{ backgroundColor: theme.colors.surface }} elevated>
-        <Appbar.Content title={userRole === 'TUTOR' ? 'Tutor Hub' : 'My Learning'} />
-        {userRole === 'STUDENT' && (
-          <IconButton
-            icon="account-multiple"
-            size={24}
-            onPress={() => onNavigate('friends')}
-          />
-        )}
-        <IconButton
-          icon="bell"
-          size={24}
-          onPress={() => onNavigate('notifications')}
-        />
-        <IconButton
-          icon="account-circle"
-          size={24}
-          onPress={() => onNavigate('profile')}
-        />
-      </Appbar.Header>
-      
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}

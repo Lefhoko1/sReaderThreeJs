@@ -8,13 +8,12 @@ import {
   View,
   ScrollView,
   TouchableOpacity,
-  Text,
-  TextInput,
   StyleSheet,
   ActivityIndicator,
   Alert,
   FlatList,
 } from 'react-native';
+import { Text, useTheme, Button, Card, IconButton } from 'react-native-paper';
 import { observer } from 'mobx-react-lite';
 import { TutoringViewModel } from '../../../../application/viewmodels/TutoringViewModel';
 import { TutoringAcademy, TutoringSubject, ClassSchedule } from '../../../../domain/entities/tutoring';
@@ -35,6 +34,7 @@ export const AcademyBrowser: React.FC<AcademyBrowserProps> = observer(({
   onAcademySelect,
   onBack,
 }) => {
+  const theme = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAcademy, setSelectedAcademy] = useState<TutoringAcademy | null>(null);
   const [showSubjectDetails, setShowSubjectDetails] = useState(false);
@@ -113,177 +113,218 @@ export const AcademyBrowser: React.FC<AcademyBrowserProps> = observer(({
   };
 
   const renderAcademyCard = ({ item: academy }: { item: TutoringAcademy }) => (
-    <TouchableOpacity
-      style={styles.academyCard}
+    <Card
+      style={[styles.academyCard, { backgroundColor: theme.colors.primaryContainer }]}
+      mode="elevated"
       onPress={() => {
         console.log('[AcademyBrowser] Academy card pressed for:', academy.name);
         viewModel.selectAcademy(academy);
         onAcademySelect?.(academy);
       }}
     >
-      <View style={styles.academyCardHeader}>
-        <Text style={styles.academyName}>{academy.name}</Text>
-        {academy.isVerified && <Text style={styles.verifiedBadge}>✓</Text>}
-      </View>
+      <Card.Content>
+        <View style={styles.academyCardHeader}>
+          <Text variant="titleMedium" style={[styles.academyName, { color: theme.colors.onSurface }]}>
+            {academy.name}
+          </Text>
+          {academy.isVerified && (
+            <Text style={[styles.verifiedBadge, { color: theme.colors.primary }]}>✓</Text>
+          )}
+        </View>
 
-      {academy.description && (
-        <Text style={styles.academyDescription} numberOfLines={2}>
-          {academy.description}
-        </Text>
-      )}
-
-      <View style={styles.academyMeta}>
-        {academy.location && (
-          <Text style={styles.metaText}>📍 {academy.location}</Text>
+        {academy.description && (
+          <Text variant="bodySmall" style={[styles.academyDescription, { color: theme.colors.onSurfaceVariant }]} numberOfLines={2}>
+            {academy.description}
+          </Text>
         )}
-        {academy.phone && (
-          <Text style={styles.metaText}>📞 {academy.phone}</Text>
-        )}
-      </View>
 
-      <TouchableOpacity
-        style={styles.browseButton}
-        onPress={(e) => {
-          e.stopPropagation();
-          console.log('[AcademyBrowser] Browse Levels pressed for academy:', academy.name);
-          viewModel.selectAcademy(academy);
-          onAcademySelect?.(academy);
-        }}
-      >
-        <Text style={styles.browseButtonText}>Browse Levels →</Text>
-      </TouchableOpacity>
-    </TouchableOpacity>
+        <View style={styles.academyMeta}>
+          {academy.location && (
+            <Text variant="labelSmall" style={[styles.metaText, { color: theme.colors.onSurfaceVariant }]}>
+              📍 {academy.location}
+            </Text>
+          )}
+          {academy.phone && (
+            <Text variant="labelSmall" style={[styles.metaText, { color: theme.colors.onSurfaceVariant }]}>
+              📞 {academy.phone}
+            </Text>
+          )}
+        </View>
+      </Card.Content>
+
+      <Card.Actions>
+        <Button
+          mode="contained-tonal"
+          onPress={(e) => {
+            e.stopPropagation();
+            console.log('[AcademyBrowser] Browse Levels pressed for academy:', academy.name);
+            viewModel.selectAcademy(academy);
+            setSelectedAcademy(academy);
+            onAcademySelect?.(academy);
+          }}
+        >
+          Browse Levels
+        </Button>
+      </Card.Actions>
+    </Card>
   );
 
   const renderSubjectCard = ({ item: subject }: { item: TutoringSubject }) => (
-    <TouchableOpacity
-      style={styles.classCard}
+    <Card
+      style={[styles.classCard, { backgroundColor: theme.colors.secondaryContainer }]}
+      mode="elevated"
       onPress={() => handleSubjectPress(subject)}
     >
-      <View style={styles.classHeader}>
-        <Text style={styles.className}>{subject.name}</Text>
-        {subject.platform && (
-          <Text style={styles.platformBadge}>
-            {subject.platform === 'ONLINE' ? '💻' : subject.platform === 'IN_PERSON' ? '📍' : '🔀'}
+      <Card.Content>
+        <View style={styles.classHeader}>
+          <Text variant="titleSmall" style={[styles.className, { color: theme.colors.onSurface }]}>
+            {subject.name}
+          </Text>
+          {subject.platform && (
+            <Text style={styles.platformBadge}>
+              {subject.platform === 'ONLINE' ? '💻' : subject.platform === 'IN_PERSON' ? '📍' : '🔀'}
+            </Text>
+          )}
+        </View>
+
+        {subject.description && (
+          <Text variant="bodySmall" style={[styles.classDescription, { color: theme.colors.onSurfaceVariant }]} numberOfLines={2}>
+            {subject.description}
           </Text>
         )}
-      </View>
 
-      {subject.description && (
-        <Text style={styles.classDescription} numberOfLines={2}>
-          {subject.description}
-        </Text>
-      )}
+        <View style={styles.classMeta}>
+          {subject.schedule && (
+            <Text variant="labelSmall" style={[styles.scheduleText, { color: theme.colors.onSurfaceVariant }]}>
+              📅 {(subject.schedule as ClassSchedule).days?.join(', ') || 'Check schedule'}
+            </Text>
+          )}
+        </View>
 
-      <View style={styles.classMeta}>
-        {subject.schedule && (
-          <Text style={styles.scheduleText}>
-            📅 {(subject.schedule as ClassSchedule).days?.join(', ') || 'Check schedule'}
-          </Text>
-        )}
-      </View>
+        <View style={[styles.costSection, { backgroundColor: theme.colors.tertiaryContainer }]}>
+          {subject.costPerMonth && (
+            <Text variant="labelMedium" style={[styles.costText, { color: theme.colors.onSecondaryContainer, fontWeight: '600' }]}>
+              ${subject.costPerMonth}/month
+            </Text>
+          )}
+          {subject.costPerTerm && (
+            <Text variant="labelMedium" style={[styles.costText, { color: theme.colors.onSecondaryContainer, fontWeight: '600' }]}>
+              ${subject.costPerTerm}/term
+            </Text>
+          )}
+          {subject.costPerYear && (
+            <Text variant="labelMedium" style={[styles.costText, { color: theme.colors.onSecondaryContainer, fontWeight: '600' }]}>
+              ${subject.costPerYear}/year
+            </Text>
+          )}
+        </View>
+      </Card.Content>
 
-      <View style={styles.costSection}>
-        {subject.costPerMonth && (
-          <Text style={styles.costText}>${subject.costPerMonth}/month</Text>
-        )}
-        {subject.costPerTerm && (
-          <Text style={styles.costText}>${subject.costPerTerm}/term</Text>
-        )}
-        {subject.costPerYear && (
-          <Text style={styles.costText}>${subject.costPerYear}/year</Text>
-        )}
-      </View>
-
-      <TouchableOpacity
-        style={styles.detailsButton}
-        onPress={() => handleSubjectPress(subject)}
-      >
-        <Text style={styles.detailsButtonText}>Enroll Now</Text>
-      </TouchableOpacity>
-    </TouchableOpacity>
+      <Card.Actions>
+        <Button
+          mode="contained"
+          onPress={() => handleRequestRegistration(subject)}
+        >
+          Enroll Now
+        </Button>
+      </Card.Actions>
+    </Card>
   );
 
   return (
-    <View style={styles.container}>
-      {/* Header with Back Button */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.headerBackButton}>
-          <Text style={styles.headerBackText}>← Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Browse Academies</Text>
-        <View style={styles.headerSpacer} />
-      </View>
-
-      {/* Search Header */}
-      <View style={styles.searchHeader}>
-        <View style={styles.searchBox}>
-          <Text style={styles.searchIcon}>🔍</Text>
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search academies..."
-            value={searchQuery}
-            onChangeText={handleSearch}
-            placeholderTextColor="#999"
-          />
-          {searchQuery !== '' && (
-            <TouchableOpacity onPress={() => handleSearch('')}>
-              <Text style={styles.clearButton}>✕</Text>
-            </TouchableOpacity>
-          )}
+    <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]} showsVerticalScrollIndicator={true}>
+      {/* Search Header - removed Appbar.Header as it's now in the persistent header */}
+      {!selectedAcademy && (
+        <View style={[styles.searchHeader, { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.surfaceVariant }]}>
+          <View style={[styles.searchBox, { backgroundColor: theme.colors.secondaryContainer }]}>
+            <Text style={styles.searchIcon}>🔍</Text>
+            <Text
+              style={[styles.searchInput, { color: theme.colors.onSurface }]}
+              placeholder="Search academies..."
+            />
+            {searchQuery !== '' && (
+              <TouchableOpacity onPress={() => handleSearch('')}>
+                <Text style={styles.clearButton}>✕</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
-      </View>
+      )}
 
       {/* Main Content */}
       {selectedAcademy ? (
         // Academy Detail View
-        <ScrollView style={styles.detailView}>
+        <ScrollView style={styles.detailView} nestedScrollEnabled={true} scrollEventThrottle={16}>
           <View style={styles.academyDetail}>
-            <TouchableOpacity
+            <Button
+              mode="text"
               onPress={() => setSelectedAcademy(null)}
-              style={styles.backButton}
+              contentStyle={styles.backButtonContent}
+              labelStyle={styles.backButtonLabel}
             >
-              <Text style={styles.backButtonText}>← Back to Academies</Text>
-            </TouchableOpacity>
+              ← Back to Academies
+            </Button>
 
-            <Text style={styles.detailTitle}>{selectedAcademy.name}</Text>
+            <Text variant="headlineMedium" style={[styles.detailTitle, { color: theme.colors.onSurface }]}>
+              {selectedAcademy.name}
+            </Text>
 
             {selectedAcademy.description && (
-              <Text style={styles.detailDescription}>
+              <Text variant="bodyMedium" style={[styles.detailDescription, { color: theme.colors.onSurfaceVariant }]}>
                 {selectedAcademy.description}
               </Text>
             )}
 
-            <View style={styles.detailInfo}>
-              {selectedAcademy.location && (
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>📍 Location</Text>
-                  <Text style={styles.infoValue}>{selectedAcademy.location}</Text>
-                </View>
-              )}
-              {selectedAcademy.email && (
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>✉️ Email</Text>
-                  <Text style={styles.infoValue}>{selectedAcademy.email}</Text>
-                </View>
-              )}
-              {selectedAcademy.phone && (
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>📞 Phone</Text>
-                  <Text style={styles.infoValue}>{selectedAcademy.phone}</Text>
-                </View>
-              )}
-              {selectedAcademy.websiteUrl && (
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>🌐 Website</Text>
-                  <Text style={styles.infoValue}>{selectedAcademy.websiteUrl}</Text>
-                </View>
-              )}
-            </View>
+            <Card style={[styles.detailInfo, { backgroundColor: theme.colors.surfaceVariant }]}>
+              <Card.Content>
+                {selectedAcademy.location && (
+                  <View style={[styles.infoRow, { borderBottomColor: theme.colors.surfaceVariant }]}>
+                    <Text variant="labelSmall" style={[styles.infoLabel, { color: theme.colors.onSurfaceVariant }]}>
+                      📍 Location
+                    </Text>
+                    <Text variant="bodySmall" style={[styles.infoValue, { color: theme.colors.onSurface }]}>
+                      {selectedAcademy.location}
+                    </Text>
+                  </View>
+                )}
+                {selectedAcademy.email && (
+                  <View style={[styles.infoRow, { borderBottomColor: theme.colors.surfaceVariant }]}>
+                    <Text variant="labelSmall" style={[styles.infoLabel, { color: theme.colors.onSurfaceVariant }]}>
+                      ✉️ Email
+                    </Text>
+                    <Text variant="bodySmall" style={[styles.infoValue, { color: theme.colors.onSurface }]}>
+                      {selectedAcademy.email}
+                    </Text>
+                  </View>
+                )}
+                {selectedAcademy.phone && (
+                  <View style={[styles.infoRow, { borderBottomColor: theme.colors.surfaceVariant }]}>
+                    <Text variant="labelSmall" style={[styles.infoLabel, { color: theme.colors.onSurfaceVariant }]}>
+                      📞 Phone
+                    </Text>
+                    <Text variant="bodySmall" style={[styles.infoValue, { color: theme.colors.onSurface }]}>
+                      {selectedAcademy.phone}
+                    </Text>
+                  </View>
+                )}
+                {selectedAcademy.websiteUrl && (
+                  <View style={[styles.infoRow, { borderBottomWidth: 0, borderBottomColor: theme.colors.surfaceVariant }]}>
+                    <Text variant="labelSmall" style={[styles.infoLabel, { color: theme.colors.onSurfaceVariant }]}>
+                      🌐 Website
+                    </Text>
+                    <Text variant="bodySmall" style={[styles.infoValue, { color: theme.colors.onSurface }]}>
+                      {selectedAcademy.websiteUrl}
+                    </Text>
+                  </View>
+                )}
+              </Card.Content>
+            </Card>
 
-            <Text style={styles.classesTitle}>Available Subjects</Text>
+            <Text variant="titleLarge" style={[styles.classesTitle, { color: theme.colors.onSurface }]}>
+              Available Subjects
+            </Text>
             {viewModel.subjects.length === 0 ? (
-              <Text style={styles.noClassesText}>
+              <Text variant="bodyMedium" style={[styles.noClassesText, { color: theme.colors.onSurfaceVariant }]}>
                 No subjects available yet. Check back soon!
               </Text>
             ) : (
@@ -300,24 +341,25 @@ export const AcademyBrowser: React.FC<AcademyBrowserProps> = observer(({
         // Academy List View
         <FlatList
           data={displayedAcademies}
-          renderItem={renderAcademyCard}
+          renderItem={({ item }) => renderAcademyCard({ item, index: 0 })}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
           ListEmptyComponent={
             <View style={styles.emptyState}>
-              <Text style={styles.emptyTitle}>
-                {viewModel.loading ? 'Loading...' : 'No academies found'}
+              <Text variant="bodyLarge" style={[styles.emptyTitle, { color: theme.colors.onSurfaceVariant }]}>
+                {viewModel.loading ? 'Loading academies...' : 'No academies found'}
               </Text>
               {!viewModel.loading && (
-                <Text style={styles.emptySubtext}>
+                <Text variant="bodyMedium" style={[styles.emptySubtext, { color: theme.colors.onSurfaceVariant }]}>
                   Try a different search or check back later
                 </Text>
               )}
             </View>
           }
+          contentContainerStyle={styles.listContent}
+          scrollEventThrottle={16}
         />
       )}
-    </View>
+    </ScrollView>
   );
 });
 
@@ -326,17 +368,15 @@ AcademyBrowser.displayName = 'AcademyBrowser';
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#fff',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#fff',
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
   },
   headerBackButton: {
     paddingVertical: 8,
@@ -344,13 +384,11 @@ const styles = StyleSheet.create({
   },
   headerBackText: {
     fontSize: 16,
-    color: '#007AFF',
     fontWeight: '600',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#212529',
     flex: 1,
     textAlign: 'center',
   },
@@ -358,15 +396,12 @@ const styles = StyleSheet.create({
     width: 40,
   },
   searchHeader: {
-    backgroundColor: '#fff',
     padding: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
   },
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f0f0f0',
     borderRadius: 8,
     paddingHorizontal: 12,
     height: 40,
@@ -378,24 +413,24 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 14,
-    color: '#212529',
   },
   clearButton: {
     fontSize: 18,
-    color: '#999',
     marginLeft: 8,
   },
   listContent: {
     padding: 12,
     paddingBottom: 20,
+    flexGrow: 1,
   },
   academyCard: {
-    backgroundColor: '#fff',
     borderRadius: 12,
-    padding: 16,
     marginBottom: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: '#007AFF',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
   },
   academyCardHeader: {
     flexDirection: 'row',
@@ -404,18 +439,12 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   academyName: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#212529',
     flex: 1,
   },
   verifiedBadge: {
     fontSize: 18,
-    color: '#28a745',
   },
   academyDescription: {
-    fontSize: 13,
-    color: '#666',
     marginBottom: 10,
     lineHeight: 18,
   },
@@ -425,23 +454,18 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 12,
-    color: '#6c757d',
   },
   browseButton: {
-    backgroundColor: '#e7f3ff',
     paddingVertical: 10,
     borderRadius: 6,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#007AFF',
   },
   browseButtonText: {
-    color: '#007AFF',
     fontWeight: '600',
     fontSize: 14,
   },
   detailView: {
-    flex: 1,
+    flexGrow: 1,
   },
   academyDetail: {
     padding: 16,
@@ -449,68 +473,61 @@ const styles = StyleSheet.create({
   backButton: {
     marginBottom: 16,
   },
+  backButtonContent: {
+    justifyContent: 'flex-start',
+  },
+  backButtonLabel: {
+    fontSize: 14,
+  },
   backButtonText: {
-    color: '#007AFF',
     fontSize: 14,
     fontWeight: '600',
   },
   detailTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#212529',
     marginBottom: 12,
   },
   detailDescription: {
-    fontSize: 14,
-    color: '#495057',
     marginBottom: 16,
     lineHeight: 20,
   },
   detailInfo: {
-    backgroundColor: '#f9f9f9',
     borderRadius: 8,
     padding: 12,
     marginBottom: 20,
-    borderLeftWidth: 3,
-    borderLeftColor: '#007AFF',
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
   },
   infoRow: {
     marginBottom: 12,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
   },
   infoLabel: {
-    fontSize: 12,
-    color: '#6c757d',
     fontWeight: '600',
     marginBottom: 4,
   },
   infoValue: {
-    fontSize: 14,
-    color: '#212529',
     fontWeight: '500',
   },
   classesTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#212529',
     marginBottom: 12,
     marginTop: 20,
   },
   noClassesText: {
-    fontSize: 14,
-    color: '#6c757d',
     textAlign: 'center',
     paddingVertical: 20,
   },
   classCard: {
-    backgroundColor: '#fff',
     borderRadius: 10,
-    padding: 14,
     marginBottom: 10,
-    borderLeftWidth: 3,
-    borderLeftColor: '#28a745',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
   },
   classHeader: {
     flexDirection: 'row',
@@ -519,17 +536,12 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   className: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#212529',
     flex: 1,
   },
   platformBadge: {
     fontSize: 16,
   },
   classDescription: {
-    fontSize: 12,
-    color: '#666',
     marginBottom: 8,
     lineHeight: 16,
   },
@@ -538,30 +550,23 @@ const styles = StyleSheet.create({
   },
   scheduleText: {
     fontSize: 12,
-    color: '#6c757d',
   },
   costSection: {
-    backgroundColor: '#f9f9f9',
     paddingHorizontal: 8,
     paddingVertical: 8,
     borderRadius: 4,
     marginBottom: 10,
   },
   costText: {
-    fontSize: 13,
     fontWeight: '600',
-    color: '#28a745',
   },
   detailsButton: {
-    backgroundColor: '#e7f3ff',
     paddingVertical: 8,
     borderRadius: 6,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#007AFF',
   },
   detailsButtonText: {
-    color: '#007AFF',
     fontWeight: '600',
     fontSize: 13,
   },
@@ -570,13 +575,11 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     paddingHorizontal: 12,
     paddingVertical: 20,
     justifyContent: 'flex-end',
   },
   detailsContent: {
-    backgroundColor: '#fff',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
@@ -588,18 +591,15 @@ const styles = StyleSheet.create({
   },
   closeDetailsText: {
     fontSize: 24,
-    color: '#6c757d',
     fontWeight: '300',
   },
   detailsTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#212529',
     marginBottom: 12,
   },
   detailsDescription: {
     fontSize: 14,
-    color: '#666',
     marginBottom: 16,
     lineHeight: 20,
   },
@@ -607,7 +607,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   costBreakdown: {
-    backgroundColor: '#f9f9f9',
     borderRadius: 6,
     padding: 10,
     marginBottom: 12,
@@ -616,17 +615,14 @@ const styles = StyleSheet.create({
   costOption: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#28a745',
   },
   registerButton: {
-    backgroundColor: '#007AFF',
     paddingVertical: 14,
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 16,
   },
   registerButtonText: {
-    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -635,13 +631,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#495057',
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#6c757d',
   },
 });

@@ -14,7 +14,7 @@ import {
   FlatList,
   Dimensions,
 } from 'react-native';
-import { Text, Card, Searchbar, Chip } from 'react-native-paper';
+import { Text, Card, Searchbar, Chip, useTheme } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { observer } from 'mobx-react-lite';
@@ -35,6 +35,7 @@ type SortType = 'name' | 'price-low' | 'price-high';
 
 export const SubjectBrowser: React.FC<SubjectBrowserProps> = observer(
   ({ viewModel, academy, level, studentId, onSubjectSelect, onBack }) => {
+    const theme = useTheme();
     const [searchQuery, setSearchQuery] = useState('');
     const [sortType, setSortType] = useState<SortType>('name');
     const [loading, setLoading] = useState(true);
@@ -107,7 +108,7 @@ export const SubjectBrowser: React.FC<SubjectBrowserProps> = observer(
                   ] as any)
                 }
                 size={28}
-                color="#7C6FD3"
+                color={theme.colors.primary}
               />
             </View>
 
@@ -165,124 +166,134 @@ export const SubjectBrowser: React.FC<SubjectBrowserProps> = observer(
       </Card>
     );
 
-    return (
-      <SafeAreaView style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={onBack} style={styles.backButton}>
-            <MaterialCommunityIcons name="chevron-left" size={28} color="#fff" />
-          </TouchableOpacity>
-          <View style={styles.headerTitleWrapper}>
-            <Text style={styles.headerSubtitle}>{academy.name}</Text>
-            <Text style={styles.headerTitle}>{level.name}</Text>
+    function renderHeader() {
+      return (
+        <View>
+          {/* Header */}
+          <View style={[styles.header, { backgroundColor: theme.colors.primary }]}>
+            <TouchableOpacity onPress={onBack} style={styles.backButton}>
+              <MaterialCommunityIcons name="chevron-left" size={28} color={theme.colors.onPrimary} />
+            </TouchableOpacity>
+            <View style={styles.headerTitleWrapper}>
+              <Text style={[styles.headerSubtitle, { color: theme.colors.onPrimary }]}>{academy.name}</Text>
+              <Text style={[styles.headerTitle, { color: theme.colors.onPrimary }]}>{level.name}</Text>
+            </View>
+            <View style={{ width: 28 }} />
           </View>
-          <View style={{ width: 28 }} />
-        </View>
 
-        {/* Breadcrumb */}
-        <View style={styles.breadcrumb}>
-          <Text style={styles.breadcrumbText}>Academy</Text>
-          <MaterialCommunityIcons name="chevron-right" size={14} color="#7C6FD3" />
-          <Text style={styles.breadcrumbText}>{level.name}</Text>
-          <MaterialCommunityIcons name="chevron-right" size={14} color="#7C6FD3" />
-          <Text style={styles.breadcrumbTextActive}>Subjects</Text>
-        </View>
+          {/* Breadcrumb */}
+          <View style={[styles.breadcrumb, { backgroundColor: theme.colors.surfaceVariant, borderBottomColor: 'rgba(0, 0, 0, 0.06)' }]}>
+            <Text style={[styles.breadcrumbText, { color: theme.colors.onSurfaceVariant }]}>Academy</Text>
+            <MaterialCommunityIcons name="chevron-right" size={14} color={theme.colors.primary} />
+            <Text style={[styles.breadcrumbText, { color: theme.colors.onSurfaceVariant }]}>{level.name}</Text>
+            <MaterialCommunityIcons name="chevron-right" size={14} color={theme.colors.primary} />
+            <Text style={[styles.breadcrumbTextActive, { color: theme.colors.primary }]}>Subjects</Text>
+          </View>
 
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <Searchbar
-            placeholder="Search subjects..."
-            onChangeText={setSearchQuery}
-            value={searchQuery}
-            style={styles.searchbar}
-            placeholderTextColor="#999"
-          />
-        </View>
+          {/* Search Bar */}
+          <View style={[styles.searchContainer, { backgroundColor: theme.colors.surfaceVariant }]}>
+            <Searchbar
+              placeholder="Search subjects..."
+              onChangeText={setSearchQuery}
+              value={searchQuery}
+              style={styles.searchbar}
+              placeholderTextColor={theme.colors.onSurfaceVariant}
+            />
+          </View>
 
-        {/* Sort Options */}
-        <View style={styles.sortContainer}>
-          <Text style={styles.sortLabel}>Sort by:</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.sortScroll}>
-            {(['name', 'price-low', 'price-high'] as const).map((sort) => (
-              <Chip
-                key={sort}
-                selected={sortType === sort}
-                onPress={() => setSortType(sort)}
-                style={[
-                  styles.sortChip,
-                  sortType === sort && styles.sortChipActive,
-                ]}
-                textStyle={[
-                  styles.sortChipText,
-                  sortType === sort && styles.sortChipTextActive,
-                ]}
-                icon={
-                  sort === 'name'
-                    ? 'alphabetical'
+          {/* Sort Options */}
+          <View style={[styles.sortContainer, { backgroundColor: theme.colors.surfaceVariant }]}>
+            <Text style={styles.sortLabel}>Sort by:</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.sortScroll}>
+              {(['name', 'price-low', 'price-high'] as const).map((sort) => (
+                <Chip
+                  key={sort}
+                  selected={sortType === sort}
+                  onPress={() => setSortType(sort)}
+                  style={[
+                    styles.sortChip,
+                    sortType === sort && styles.sortChipActive,
+                  ]}
+                  textStyle={[
+                    styles.sortChipText,
+                    sortType === sort && styles.sortChipTextActive,
+                  ]}
+                  icon={
+                    sort === 'name'
+                      ? 'alphabetical'
+                      : sort === 'price-low'
+                        ? 'sort-ascending'
+                        : 'sort-descending'
+                  }
+                >
+                  {sort === 'name'
+                    ? 'Name'
                     : sort === 'price-low'
-                      ? 'sort-ascending'
-                      : 'sort-descending'
-                }
-              >
-                {sort === 'name'
-                  ? 'Name'
-                  : sort === 'price-low'
-                    ? 'Price: Low'
-                    : 'Price: High'}
-              </Chip>
-            ))}
-          </ScrollView>
+                      ? 'Price: Low'
+                      : 'Price: High'}
+                </Chip>
+              ))}
+            </ScrollView>
+          </View>
         </View>
+      );
+    }
 
-        {/* Subjects List */}
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.surfaceVariant }]}>
         {loading ? (
           <View style={styles.centerContainer}>
-            <MaterialCommunityIcons name="loading" size={48} color="#7C6FD3" />
-            <Text style={styles.loadingText}>Loading subjects...</Text>
+            <MaterialCommunityIcons name="loading" size={48} color={theme.colors.primary} />
+            <Text style={[styles.loadingText, { color: theme.colors.primary }]}>Loading subjects...</Text>
           </View>
         ) : filteredAndSortedSubjects.length === 0 ? (
-          <View style={styles.centerContainer}>
-            <MaterialCommunityIcons name="magnify" size={48} color="#ccc" />
-            <Text style={styles.emptyText}>No subjects found</Text>
-            <Text style={styles.emptySubtext}>Try adjusting your search</Text>
+          <View>
+            {renderHeader()}
+            <View style={styles.centerContainer}>
+              <MaterialCommunityIcons name="magnify" size={48} color={theme.colors.surfaceVariant} />
+              <Text style={styles.emptyText}>No subjects found</Text>
+              <Text style={styles.emptySubtext}>Try adjusting your search</Text>
+            </View>
           </View>
         ) : (
           <FlatList
+            ListHeaderComponent={renderHeader}
             data={filteredAndSortedSubjects}
             renderItem={renderSubjectCard}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.listContainer}
-            scrollEnabled={true}
+            showsVerticalScrollIndicator={false}
+            style={{ backgroundColor: theme.colors.surfaceVariant }}
+            ListFooterComponent={
+              filteredAndSortedSubjects.length > 0 ? (
+                <View style={[styles.footer, { backgroundColor: theme.colors.surface, borderTopColor: 'rgba(0, 0, 0, 0.06)' }]}>
+                  <View style={styles.statItem}>
+                    <MaterialCommunityIcons name="book-multiple" size={20} color={theme.colors.primary} />
+                    <Text style={[styles.statText, { color: theme.colors.onSurfaceVariant }]}>{filteredAndSortedSubjects.length} Subjects</Text>
+                  </View>
+                  <View style={[styles.statDivider, { backgroundColor: theme.colors.surfaceVariant }]} />
+                  <View style={styles.statItem}>
+                    <MaterialCommunityIcons name="currency-usd" size={20} color={theme.colors.primary} />
+                    <Text style={[styles.statText, { color: theme.colors.onSurfaceVariant }]}>
+                      $
+                      {Math.min(
+                        ...filteredAndSortedSubjects
+                          .map((s) => s.costPerMonth || 0)
+                          .filter((c) => c > 0)
+                      )}
+                      -$
+                      {Math.max(
+                        ...filteredAndSortedSubjects
+                          .map((s) => s.costPerMonth || 0)
+                          .filter((c) => c > 0)
+                      )}
+                      /month
+                    </Text>
+                  </View>
+                </View>
+              ) : null
+            }
           />
-        )}
-
-        {/* Stats Footer */}
-        {filteredAndSortedSubjects.length > 0 && (
-          <View style={styles.footer}>
-            <View style={styles.statItem}>
-              <MaterialCommunityIcons name="book-multiple" size={20} color="#7C6FD3" />
-              <Text style={styles.statText}>{filteredAndSortedSubjects.length} Subjects</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <MaterialCommunityIcons name="currency-usd" size={20} color="#7C6FD3" />
-              <Text style={styles.statText}>
-                $
-                {Math.min(
-                  ...filteredAndSortedSubjects
-                    .map((s) => s.costPerMonth || 0)
-                    .filter((c) => c > 0)
-                )}
-                -$
-                {Math.max(
-                  ...filteredAndSortedSubjects
-                    .map((s) => s.costPerMonth || 0)
-                    .filter((c) => c > 0)
-                )}
-                /month
-              </Text>
-            </View>
-          </View>
         )}
       </SafeAreaView>
     );
@@ -292,7 +303,6 @@ export const SubjectBrowser: React.FC<SubjectBrowserProps> = observer(
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fc',
   },
 
   // Header
@@ -302,7 +312,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#7C6FD3',
     elevation: 3,
   },
   backButton: {
@@ -317,13 +326,11 @@ const styles = StyleSheet.create({
   },
   headerSubtitle: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.8)',
     marginBottom: 2,
   },
   headerTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#fff',
   },
 
   // Breadcrumb
@@ -332,20 +339,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
     flexWrap: 'wrap',
   },
   breadcrumbText: {
     fontSize: 11,
-    color: '#666',
     marginHorizontal: 4,
   },
   breadcrumbTextActive: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#7C6FD3',
     marginHorizontal: 4,
   },
 
@@ -353,10 +356,11 @@ const styles = StyleSheet.create({
   searchContainer: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#fff',
+    backgroundColor: '#E7E0EC',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0, 0, 0, 0.06)',
   },
   searchbar: {
-    backgroundColor: '#f0f0f0',
     borderRadius: 12,
   },
 
@@ -364,15 +368,15 @@ const styles = StyleSheet.create({
   sortContainer: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#fff',
+    backgroundColor: '#E7E0EC',
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: 'rgba(0, 0, 0, 0.06)',
   },
   sortLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#666',
     marginBottom: 8,
+    color: '#1C1B1F',
   },
   sortScroll: {
     marginHorizontal: -16,
@@ -380,23 +384,20 @@ const styles = StyleSheet.create({
   },
   sortChip: {
     marginRight: 8,
-    backgroundColor: '#f0f0f0',
   },
   sortChipActive: {
-    backgroundColor: '#7C6FD3',
   },
   sortChipText: {
-    color: '#666',
     fontSize: 11,
   },
   sortChipTextActive: {
-    color: '#fff',
   },
 
   // List
   listContainer: {
     paddingHorizontal: 16,
     paddingVertical: 12,
+    paddingBottom: 40,
   },
   subjectCardWrapper: {
     marginBottom: 12,
@@ -421,7 +422,6 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 10,
-    backgroundColor: '#f0f0f0',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 10,
@@ -432,25 +432,24 @@ const styles = StyleSheet.create({
   subjectName: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#333',
     marginBottom: 2,
+    color: '#1C1B1F',
   },
   subjectCode: {
     fontSize: 11,
-    color: '#7C6FD3',
     fontWeight: '600',
     marginBottom: 4,
+    color: '#79747E',
   },
   subjectDescription: {
     fontSize: 11,
-    color: '#666',
     lineHeight: 15,
     marginBottom: 6,
+    color: '#1C1B1F',
   },
   creditBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f0f0f0',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
@@ -458,9 +457,9 @@ const styles = StyleSheet.create({
   },
   creditText: {
     fontSize: 10,
-    color: '#666',
     marginLeft: 4,
     fontWeight: '500',
+    color: '#1C1B1F',
   },
 
   // Pricing
@@ -475,43 +474,42 @@ const styles = StyleSheet.create({
   },
   priceBoxHighlight: {
     alignItems: 'flex-end',
-    backgroundColor: 'rgba(124, 111, 211, 0.1)',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
   },
   priceLabel: {
     fontSize: 9,
-    color: '#999',
     fontWeight: '500',
+    color: '#79747E',
   },
   priceAmount: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#333',
     marginTop: 2,
+    color: '#1C1B1F',
   },
   priceAmountHighlight: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#7C6FD3',
     marginTop: 2,
+    color: '#6750A4',
   },
   enrollButton: {
     flexDirection: 'row',
-    backgroundColor: '#7C6FD3',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 6,
     marginTop: 8,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#6750A4',
   },
   enrollButtonText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#fff',
     marginLeft: 4,
+    color: '#fff',
   },
 
   // Center
@@ -523,20 +521,20 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    color: '#7C6FD3',
     marginTop: 12,
     fontWeight: '600',
+    color: '#6750A4',
   },
   emptyText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#333',
     marginTop: 12,
+    color: '#1C1B1F',
   },
   emptySubtext: {
     fontSize: 12,
-    color: '#999',
     marginTop: 6,
+    color: '#79747E',
   },
 
   // Footer
@@ -545,9 +543,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#fff',
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
   },
   statItem: {
     flex: 1,
@@ -558,12 +554,10 @@ const styles = StyleSheet.create({
   statText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#666',
     marginLeft: 6,
   },
   statDivider: {
     width: 1,
     height: 20,
-    backgroundColor: '#e0e0e0',
   },
 });

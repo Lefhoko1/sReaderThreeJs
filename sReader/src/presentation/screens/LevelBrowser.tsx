@@ -14,7 +14,7 @@ import {
   FlatList,
   Dimensions,
 } from 'react-native';
-import { Text, Card, Searchbar, Button } from 'react-native-paper';
+import { Text, Card, Searchbar, Button, useTheme } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { observer } from 'mobx-react-lite';
@@ -32,6 +32,7 @@ interface LevelBrowserProps {
 
 export const LevelBrowser: React.FC<LevelBrowserProps> = observer(
   ({ viewModel, academy, studentId, onLevelSelect, onBack }) => {
+    const theme = useTheme();
     const [searchQuery, setSearchQuery] = useState('');
     const [loading, setLoading] = useState(true);
 
@@ -72,20 +73,20 @@ export const LevelBrowser: React.FC<LevelBrowserProps> = observer(
       return (
         <Card style={styles.levelCard}>
           <LinearGradient
-            colors={['#7C6FD3', '#5A50A3']}
+            colors={[theme.colors.primary, theme.colors.primaryContainer]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.levelCardGradient}
           >
             <View style={styles.levelCardInner}>
               <View style={styles.levelIconWrapper}>
-                <MaterialCommunityIcons name="school" size={32} color="#fff" />
+                <MaterialCommunityIcons name="school" size={32} color={theme.colors.onPrimary} />
               </View>
 
               <View style={styles.levelInfo}>
-                <Text style={styles.levelName}>{item.name}</Text>
-                <Text style={styles.levelCode}>{item.code}</Text>
-                <Text style={styles.levelDescription} numberOfLines={2}>
+                <Text style={[styles.levelName, { color: theme.colors.onPrimary }]}>{item.name}</Text>
+                <Text style={[styles.levelCode, { color: theme.colors.onPrimary }]}>{item.code}</Text>
+                <Text style={[styles.levelDescription, { color: theme.colors.onPrimary }]} numberOfLines={2}>
                   {item.description}
                 </Text>
               </View>
@@ -108,45 +109,45 @@ export const LevelBrowser: React.FC<LevelBrowserProps> = observer(
     };
 
     return (
-      <SafeAreaView style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        {/* Header with Theme */}
+        <View style={[styles.header, { backgroundColor: theme.colors.primary }]}>
           <TouchableOpacity onPress={onBack} style={styles.backButton}>
-            <MaterialCommunityIcons name="chevron-left" size={28} color="#fff" />
+            <MaterialCommunityIcons name="chevron-left" size={28} color={theme.colors.onPrimary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle} numberOfLines={1}>
+          <Text style={[styles.headerTitle, { color: theme.colors.onPrimary }]} numberOfLines={1}>
             {academy.name}
           </Text>
           <View style={{ width: 28 }} />
         </View>
 
         {/* Breadcrumb */}
-        <View style={styles.breadcrumb}>
-          <Text style={styles.breadcrumbText}>Academy</Text>
-          <MaterialCommunityIcons name="chevron-right" size={16} color="#7C6FD3" />
-          <Text style={styles.breadcrumbTextActive}>Levels</Text>
+        <View style={[styles.breadcrumb, { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.surfaceVariant }]}>
+          <Text style={[styles.breadcrumbText, { color: theme.colors.onSurfaceVariant }]}>Academy</Text>
+          <MaterialCommunityIcons name="chevron-right" size={16} color={theme.colors.primary} />
+          <Text style={[styles.breadcrumbTextActive, { color: theme.colors.primary }]}>Levels</Text>
         </View>
 
         {/* Search Bar */}
-        <View style={styles.searchContainer}>
+        <View style={[styles.searchContainer, { backgroundColor: theme.colors.surface }]}>
           <Searchbar
             placeholder="Search levels by name or code..."
             onChangeText={setSearchQuery}
             value={searchQuery}
             style={styles.searchbar}
-            placeholderTextColor="#999"
+            placeholderTextColor={theme.colors.onSurfaceVariant}
           />
         </View>
 
         {/* Levels List */}
         {loading ? (
           <View style={styles.centerContainer}>
-            <MaterialCommunityIcons name="loading" size={48} color="#7C6FD3" />
-            <Text style={styles.loadingText}>Loading levels...</Text>
+            <MaterialCommunityIcons name="loading" size={48} color={theme.colors.primary} />
+            <Text style={[styles.loadingText, { color: theme.colors.primary }]}>Loading levels...</Text>
           </View>
         ) : filteredLevels.length === 0 ? (
           <View style={styles.centerContainer}>
-            <MaterialCommunityIcons name="magnify" size={48} color="#ccc" />
+            <MaterialCommunityIcons name="magnify" size={48} color={theme.colors.surfaceVariant} />
             <Text style={styles.emptyText}>No levels found</Text>
             <Text style={styles.emptySubtext}>Try adjusting your search</Text>
           </View>
@@ -161,15 +162,15 @@ export const LevelBrowser: React.FC<LevelBrowserProps> = observer(
         )}
 
         {/* Stats Footer */}
-        <View style={styles.footer}>
+        <View style={[styles.footer, { backgroundColor: theme.colors.surface, borderTopColor: theme.colors.surfaceVariant }]}>
           <View style={styles.statItem}>
-            <MaterialCommunityIcons name="book" size={20} color="#7C6FD3" />
-            <Text style={styles.statText}>{filteredLevels.length} Levels</Text>
+            <MaterialCommunityIcons name="book" size={20} color={theme.colors.primary} />
+            <Text style={[styles.statText, { color: theme.colors.onSurfaceVariant }]}>{filteredLevels.length} Levels</Text>
           </View>
-          <View style={styles.statDivider} />
+          <View style={[styles.statDivider, { backgroundColor: theme.colors.surfaceVariant }]} />
           <View style={styles.statItem}>
-            <MaterialCommunityIcons name="school" size={20} color="#7C6FD3" />
-            <Text style={styles.statText}>Multiple Subjects</Text>
+            <MaterialCommunityIcons name="school" size={20} color={theme.colors.primary} />
+            <Text style={[styles.statText, { color: theme.colors.onSurfaceVariant }]}>Multiple Subjects</Text>
           </View>
         </View>
       </SafeAreaView>
@@ -180,7 +181,6 @@ export const LevelBrowser: React.FC<LevelBrowserProps> = observer(
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fc',
   },
 
   // Header
@@ -190,7 +190,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#7C6FD3',
     elevation: 3,
   },
   backButton: {
@@ -203,7 +202,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 18,
     fontWeight: '700',
-    color: '#fff',
     textAlign: 'center',
   },
 
@@ -213,18 +211,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
   },
   breadcrumbText: {
     fontSize: 12,
-    color: '#666',
   },
   breadcrumbTextActive: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#7C6FD3',
     marginLeft: 6,
   },
 
@@ -232,10 +226,8 @@ const styles = StyleSheet.create({
   searchContainer: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#fff',
   },
   searchbar: {
-    backgroundColor: '#f0f0f0',
     borderRadius: 12,
   },
 
@@ -276,17 +268,14 @@ const styles = StyleSheet.create({
   levelName: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#fff',
     marginBottom: 2,
   },
   levelCode: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.8)',
     marginBottom: 4,
   },
   levelDescription: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.7)',
     lineHeight: 16,
   },
   browseButton: {
@@ -307,19 +296,16 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    color: '#7C6FD3',
     marginTop: 12,
     fontWeight: '600',
   },
   emptyText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#333',
     marginTop: 12,
   },
   emptySubtext: {
     fontSize: 12,
-    color: '#999',
     marginTop: 6,
   },
 
@@ -329,9 +315,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#fff',
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
   },
   statItem: {
     flex: 1,
@@ -342,12 +326,10 @@ const styles = StyleSheet.create({
   statText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#666',
     marginLeft: 6,
   },
   statDivider: {
     width: 1,
     height: 20,
-    backgroundColor: '#e0e0e0',
   },
 });

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { observer } from 'mobx-react-lite';
-import { View, StyleSheet, ImageBackground } from 'react-native';
+import { View, StyleSheet, ImageBackground, SafeAreaView, Platform } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
 
 import { useAppContext } from '@/src/presentation/context/AppContext';
@@ -29,32 +29,14 @@ import { AcademyEnrollmentRequest } from '@/src/presentation/screens/AcademyEnro
 import { TutoringViewModel } from '@/src/application/viewmodels/TutoringViewModel';
 import { SupabaseTutoringRepository } from '@/src/data/supabase/SupabaseTutoringRepository';
 import { TutoringAcademy, TutoringLevel } from '@/src/domain/entities/tutoring';
+import { AppHeader, ScreenName } from '@/src/presentation/components/navigation/AppHeader';
+import { StudentNavigation } from '@/src/presentation/components/navigation/StudentNavigation';
+import { TutorNavigation } from '@/src/presentation/components/navigation/TutorNavigation';
 
-type ScreenName =
-  | 'dashboard'
-  | 'assignments'
-  | 'notifications'
-  | 'leaderboard'
-  | 'resources'
-  | 'profile'
-  | 'editProfile'
-  | 'resetPassword'
-  | 'location'
-  | 'friends'
-  | 'tutoring'
-  | 'academyManagement'
-  | 'academyBrowser'
-  | 'studentEnrollments'
-  | 'academyMarketplace'
-  | 'academyDetails'
-  | 'levelBrowser'
-  | 'subjectBrowser'
-  | 'enhancedTutoringHome'
-  | 'studentDashboardMenu'
-  | 'enrollmentRequest';
+
 
 export default observer(function HomeTab() {
-  const { authVM } = useAppContext();
+  const { authVM, dashboardVM } = useAppContext();
   const theme = useTheme();
   const [currentScreen, setCurrentScreen] = useState<ScreenName>('dashboard');
   const [tutoringVM] = useState(() => new TutoringViewModel(new SupabaseTutoringRepository()));
@@ -91,8 +73,9 @@ export default observer(function HomeTab() {
     setCurrentScreen('dashboard');
   };
 
-  // Render current screen
-  switch (currentScreen) {
+  // Render current screen content
+  const renderScreenContent = () => {
+    switch (currentScreen) {
     case 'assignments':
       return <AssignmentsScreen onBack={handleBack} />;
     case 'notifications':
@@ -326,9 +309,38 @@ export default observer(function HomeTab() {
     case 'dashboard':
     default:
       return <GameDashboard onNavigate={handleNavigate} />;
-  }
-})
+    }
+  };
+
+  // Render with persistent header and role-based bottom navigation
+  return (
+    <View style={styles.container}>
+      <AppHeader
+        currentScreen={currentScreen}
+        onNavigate={handleNavigate}
+        onBack={handleBack}
+        userRole={userRole}
+        unreadNotifications={dashboardVM.dashboardData?.unreadNotificationCount || 0}
+      />
+      <View style={styles.content}>
+        {renderScreenContent()}
+      </View>
+      {userRole === 'STUDENT' ? (
+        <StudentNavigation activeRoute={currentScreen} onNavigate={handleNavigate} />
+      ) : (
+        <TutorNavigation activeRoute={currentScreen} onNavigate={handleNavigate} />
+      )}
+    </View>
+  );
+});
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    flexDirection: 'column',
+  },
+  content: {
+    flex: 1,
+  },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
